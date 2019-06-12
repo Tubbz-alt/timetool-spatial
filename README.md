@@ -50,13 +50,39 @@ $ source timetool-spatial/firmware/setup_env_slac.sh
 
 2) Go to the target directory and make the firmware:
 ```
-$ cd timetool-spatial/firmware/targets/TimetoolSpatialTest/
+$ cd timetool-spatial/firmware/targets/TimetoolSpatialMemTester/
 $ make
 ```
 
 3) Optional: Review the results in GUI mode
 ```
 $ make gui
+```
+
+<!--- ######################################################## -->
+
+# How to run the Rogue PyQT GUI with VCS firmware simulator
+
+1) Start up two terminal
+
+2) In the 1st terminal, launch the VCS simulation
+```
+$ source timetool-spatial/firmware/setup_env_slac.sh
+$ cd timetool-spatial/firmware/targets/TimetoolSpatialMemTester/
+$ make vcs
+$ cd ../../build/TimetoolSpatialMemTester/TimetoolSpatialMemTester_project.sim/sim_1/behav/
+$ source setup_env.sh
+$ ./sim_vcs_mx.sh
+$ ./simv -gui &
+```
+
+3) When the VCS GUI pops up, start the simulation run
+
+4) In the 2nd terminal, launch the PyQT GUI in simulation mode
+```
+$ cd cd timetool-spatial/software
+$ source setup_env_template.sh
+$ python scripts/MemTester.py --dev sim
 ```
 
 <!--- ######################################################## -->
