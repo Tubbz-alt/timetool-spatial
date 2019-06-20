@@ -98,26 +98,22 @@ architecture top_level of TimetoolSpatialMemTester is
 
    constant CLK_FREQUENCY_C : real := 125.0E+6;  -- units of Hz
 
-   constant NUM_AXIL_MASTERS_C : natural := 5;
+   constant NUM_AXIL_MASTERS_C : natural := 4;
 
    constant AXIL_XBAR_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXIL_MASTERS_C-1 downto 0) := (
       0               => (
-         baseAddr     => x"0008_0000",
-         addrBits     => 19,
-         connectivity => x"FFFF"),
-      1               => (
          baseAddr     => x"0010_0000",
          addrBits     => 20,
          connectivity => x"FFFF"),
-      2               => (
+      1               => (
          baseAddr     => x"0020_0000",
          addrBits     => 21,
          connectivity => x"FFFF"),
-      3               => (
+      2               => (
          baseAddr     => x"0040_0000",
          addrBits     => 22,
          connectivity => x"FFFF"),
-      4               => (
+      3               => (
          baseAddr     => x"0080_0000",
          addrBits     => 23,
          connectivity => x"FFFF"));
@@ -130,9 +126,9 @@ architecture top_level of TimetoolSpatialMemTester is
    signal axilWriteMaster  : AxiLiteWriteMasterType;
    signal axilWriteSlave   : AxiLiteWriteSlaveType;
    signal axilWriteMasters : AxiLiteWriteMasterArray(NUM_AXIL_MASTERS_C-1 downto 0);
-   signal axilWriteSlaves  : AxiLiteWriteSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_SLVERR_C);
+   signal axilWriteSlaves  : AxiLiteWriteSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_OK_C);
    signal axilReadMasters  : AxiLiteReadMasterArray(NUM_AXIL_MASTERS_C-1 downto 0);
-   signal axilReadSlaves   : AxiLiteReadSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0)  := (others => AXI_LITE_READ_SLAVE_EMPTY_SLVERR_C);
+   signal axilReadSlaves   : AxiLiteReadSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0)  := (others => AXI_LITE_READ_SLAVE_EMPTY_OK_C);
 
    signal dmaClk       : sl;
    signal dmaRst       : sl;
@@ -148,6 +144,11 @@ architecture top_level of TimetoolSpatialMemTester is
    signal ddrWriteSlaves  : AxiWriteSlaveArray(3 downto 0);
    signal ddrReadMasters  : AxiReadMasterArray(3 downto 0);
    signal ddrReadSlaves   : AxiReadSlaveArray(3 downto 0);
+   
+   signal pipIbMaster : AxiWriteMasterType;
+   signal pipIbSlave  : AxiWriteSlaveType;
+   signal pipObMaster : AxiWriteMasterType;
+   signal pipObSlave  : AxiWriteSlaveType;   
 
 begin
 
@@ -198,7 +199,12 @@ begin
          dmaObSlaves    => dmaObSlaves,
          dmaIbMasters   => dmaIbMasters,
          dmaIbSlaves    => dmaIbSlaves,
-         -- Application AXI-Lite Interfaces [0x00080000:0x00FFFFFF]
+         -- PIP Interface [0x00080000:0009FFFF] (dmaClk domain)
+         pipIbMaster    => pipIbMaster,
+         pipIbSlave     => pipIbSlave,
+         pipObMaster    => pipObMaster,
+         pipObSlave     => pipObSlave,
+         -- Application AXI-Lite Interfaces [0x00100000:0x00FFFFFF]
          appClk         => axilClk,
          appRst         => axilRst,
          appReadMaster  => axilReadMaster,
@@ -264,12 +270,6 @@ begin
          qsfp1TxP     => qsfp1TxP,
          qsfp1TxN     => qsfp1TxN);
 
-   ---------------
-   -- Loopback DMA
-   ---------------
-   dmaIbMasters <= dmaObMasters;
-   dmaObSlaves  <= dmaIbSlaves;
-
    --------------------
    -- MIG[3:0] IP Cores
    --------------------
@@ -299,7 +299,7 @@ begin
       generic map (
          TPD_G              => TPD_G,
          NUM_SLAVE_SLOTS_G  => 1,
-         NUM_MASTER_SLOTS_G => 5,
+         NUM_MASTER_SLOTS_G => NUM_AXIL_MASTERS_C,
          MASTERS_CONFIG_G   => AXIL_XBAR_CONFIG_C)
       port map (
          axiClk              => axilClk,
@@ -337,5 +337,36 @@ begin
          ddrWriteSlaves  => ddrWriteSlaves,
          ddrReadMasters  => ddrReadMasters,
          ddrReadSlaves   => ddrReadSlaves);
+
+   -------------
+   -- PIP Module
+   -------------
+   U_AxiPciePipCore : entity work.AxiPciePipCore
+      generic map (
+         TPD_G             => TPD_G,
+         NUM_AXIS_G        => DMA_SIZE_C,
+         DMA_AXIS_CONFIG_G => DMA_AXIS_CONFIG_C)
+      port map (
+         -- AXI4-Lite Interfaces (axilClk domain)
+         axilClk         => axilClk,
+         axilRst         => axilRst,
+         axilReadMaster  => axilReadMasters(1),
+         axilReadSlave   => axilReadSlaves(1),
+         axilWriteMaster => axilWriteMasters(1),
+         axilWriteSlave  => axilWriteSlaves(1),
+         -- AXI Stream Interface (axisClk domain)
+         axisClk         => dmaClk,
+         axisRst         => dmaRst,
+         sAxisMasters    => dmaObMasters,
+         sAxisSlaves     => dmaObSlaves,
+         mAxisMasters    => dmaIbMasters,
+         mAxisSlaves     => dmaIbSlaves,
+         -- AXI4 Interfaces (axiClk domain)
+         axiClk          => dmaClk,
+         axiRst          => dmaRst,
+         sAxiWriteMaster => pipIbMaster,
+         sAxiWriteSlave  => pipIbSlave,
+         mAxiWriteMaster => pipObMaster,
+         mAxiWriteSlave  => pipObSlave);
 
 end top_level;
