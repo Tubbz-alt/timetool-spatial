@@ -148,7 +148,8 @@ class MyRoot(pr.Root):
             # Add the FPGA device class
             self.add(Fpga(
                 name    = f'Fpga[{i}]',
-                memBase = self.memMap[i] ,
+                memBase = self.memMap[i],
+                expand  = True, 
             ))                    
 
             for lane in range(args.numLane):
@@ -197,7 +198,7 @@ base = MyRoot(name='pciServer',description='DMA Loopback Testing')
 
 # Create GUI
 appTop = pyrogue.gui.application(sys.argv)
-guiTop = pyrogue.gui.GuiTop(group='TimeToolDev')
+guiTop = pyrogue.gui.GuiTop()
 guiTop.addTree(base)
 guiTop.resize(800, 1000)
 

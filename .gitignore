@@ -39,3 +39,5 @@ build*
 *.mcs
 *.ltx
 *.gz
+*.hdf
+

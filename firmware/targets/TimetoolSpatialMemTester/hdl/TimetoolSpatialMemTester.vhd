@@ -96,7 +96,7 @@ architecture top_level of TimetoolSpatialMemTester is
    constant DMA_WIDTH_C       : positive            := 8;  -- Units of bytes
    constant DMA_AXIS_CONFIG_C : AxiStreamConfigType := ssiAxiStreamConfig(DMA_WIDTH_C, TKEEP_COMP_C, TUSER_FIRST_LAST_C, 8, 2);
 
-   constant CLK_FREQUENCY_C : real := 125.0E+6;  -- units of Hz
+   constant CLK_FREQUENCY_C : real := 156.25E+6;  -- units of Hz
 
    constant NUM_AXIL_MASTERS_C : natural := 4;
 
@@ -144,11 +144,11 @@ architecture top_level of TimetoolSpatialMemTester is
    signal ddrWriteSlaves  : AxiWriteSlaveArray(3 downto 0);
    signal ddrReadMasters  : AxiReadMasterArray(3 downto 0);
    signal ddrReadSlaves   : AxiReadSlaveArray(3 downto 0);
-   
+
    signal pipIbMaster : AxiWriteMasterType;
    signal pipIbSlave  : AxiWriteSlaveType;
    signal pipObMaster : AxiWriteMasterType;
-   signal pipObSlave  : AxiWriteSlaveType;   
+   signal pipObSlave  : AxiWriteSlaveType;
 
 begin
 
@@ -166,7 +166,7 @@ begin
          -- MMCM attributes
          CLKIN_PERIOD_G     => 6.4,     -- 156.25 MHz
          CLKFBOUT_MULT_G    => 8,       -- 1.25GHz = 8 x 156.25 MHz
-         CLKOUT0_DIVIDE_F_G => 10.0)    -- 125MHz (must match CLK_FREQUENCY_C)
+         CLKOUT0_DIVIDE_F_G => 8.0)  -- 156.25 MHz (must match CLK_FREQUENCY_C)
       port map(
          -- Clock Input
          clkIn     => userClk156,
