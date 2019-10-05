@@ -51,10 +51,10 @@ entity TimetoolSpatialMemTester is
       qsfp1TxP     : out   slv(3 downto 0);
       qsfp1TxN     : out   slv(3 downto 0);
       -- DDR Ports
-      ddrClkP      : in    slv(3 downto 0);
-      ddrClkN      : in    slv(3 downto 0);
-      ddrOut       : out   DdrOutArray(3 downto 0);
-      ddrInOut     : inout DdrInOutArray(3 downto 0);
+      ddrClkP      : in    slv(0 downto 0);
+      ddrClkN      : in    slv(0 downto 0);
+      ddrOut       : out   DdrOutArray(0 downto 0);
+      ddrInOut     : inout DdrInOutArray(0 downto 0);
       --------------
       --  Core Ports
       --------------
@@ -86,6 +86,9 @@ entity TimetoolSpatialMemTester is
       pciRxN       : in    slv(7 downto 0);
       pciTxP       : out   slv(7 downto 0);
       pciTxN       : out   slv(7 downto 0));
+attribute dont_touch : string;
+attribute dont_touch of TimetoolSpatialMemTester : entity is "true";
+
 end TimetoolSpatialMemTester;
 
 architecture top_level of TimetoolSpatialMemTester is
@@ -137,20 +140,20 @@ architecture top_level of TimetoolSpatialMemTester is
    signal dmaIbMasters : AxiStreamMasterArray(DMA_SIZE_C-1 downto 0);
    signal dmaIbSlaves  : AxiStreamSlaveArray(DMA_SIZE_C-1 downto 0);
 
-   signal ddrClk          : slv(3 downto 0);
-   signal ddrRst          : slv(3 downto 0);
-   signal ddrReady        : slv(3 downto 0);
-   signal ddrWriteMasters : AxiWriteMasterArray(3 downto 0);
-   signal ddrWriteSlaves  : AxiWriteSlaveArray(3 downto 0);
-   signal ddrReadMasters  : AxiReadMasterArray(3 downto 0);
-   signal ddrReadSlaves   : AxiReadSlaveArray(3 downto 0);
+   signal ddrClk          : slv(0 downto 0);
+   signal ddrRst          : slv(0 downto 0);
+   signal ddrReady        : slv(0 downto 0);
+   signal ddrWriteMasters : AxiWriteMasterArray(0 downto 0);
+   signal ddrWriteSlaves  : AxiWriteSlaveArray(0 downto 0);
+   signal ddrReadMasters  : AxiReadMasterArray(0 downto 0);
+   signal ddrReadSlaves   : AxiReadSlaveArray(0 downto 0);
 
    signal pipIbMaster : AxiWriteMasterType;
    signal pipIbSlave  : AxiWriteSlaveType;
    signal pipObMaster : AxiWriteMasterType;
    signal pipObSlave  : AxiWriteSlaveType;
 
-
+begin
    -----------------------
    -- AXI-Lite Clock/Reset
    -----------------------
@@ -278,18 +281,18 @@ architecture top_level of TimetoolSpatialMemTester is
       port map (
          extRst          => dmaRst,
          -- AXI MEM Interface
-         axiClk          => ddrClk,
-         axiRst          => ddrRst,
-         axiReady        => ddrReady,
-         axiWriteMasters => ddrWriteMasters,
-         axiWriteSlaves  => ddrWriteSlaves,
-         axiReadMasters  => ddrReadMasters,
-         axiReadSlaves   => ddrReadSlaves,
+         axiClk(0)          => ddrClk(0),
+         axiRst(0)          => ddrRst(0),
+         axiReady(0)        => ddrReady(0),
+         axiWriteMasters(0) => ddrWriteMasters(0),
+         axiWriteSlaves(0)  => ddrWriteSlaves(0),
+         axiReadMasters(0)  => ddrReadMasters(0),
+         axiReadSlaves(0)   => ddrReadSlaves(0),
          -- DDR Ports
-         ddrClkP         => ddrClkP,
-         ddrClkN         => ddrClkN,
-         ddrOut          => ddrOut,
-         ddrInOut        => ddrInOut);
+         ddrClkP(0)         => ddrClkP(0),
+         ddrClkN(0)         => ddrClkN(0),
+         ddrOut(0)          => ddrOut(0),
+         ddrInOut(0)        => ddrInOut(0));
 
    --------------------
    -- AXI-Lite Crossbar
@@ -329,44 +332,44 @@ architecture top_level of TimetoolSpatialMemTester is
          axilWriteMaster => axilWriteMasters(0),
          axilWriteSlave  => axilWriteSlaves(0),
          -- DDR Memory Interface
-         ddrClk          => ddrClk,
-         ddrRst          => ddrRst,
-         ddrReady        => ddrReady,
-         ddrWriteMasters => ddrWriteMasters,
-         ddrWriteSlaves  => ddrWriteSlaves,
-         ddrReadMasters  => ddrReadMasters,
-         ddrReadSlaves   => ddrReadSlaves);
+         ddrClk(0)          => ddrClk(0),
+         ddrRst(0)          => ddrRst(0),
+         ddrReady(0)        => ddrReady(0),
+         ddrWriteMasters(0) => ddrWriteMasters(0),
+         ddrWriteSlaves(0)  => ddrWriteSlaves(0),
+         ddrReadMasters(0)  => ddrReadMasters(0),
+         ddrReadSlaves(0)   => ddrReadSlaves(0));
 
-   -------------
-   -- PIP Module
-   -------------
-   U_AxiPciePipCore : entity work.AxiPciePipCore
-      generic map (
-         TPD_G             => TPD_G,
-         NUM_AXIS_G        => DMA_SIZE_C,
-         DMA_AXIS_CONFIG_G => DMA_AXIS_CONFIG_C)
-      port map (
-         -- AXI4-Lite Interfaces (axilClk domain)
-         axilClk         => axilClk,
-         axilRst         => axilRst,
-         axilReadMaster  => axilReadMasters(1),
-         axilReadSlave   => axilReadSlaves(1),
-         axilWriteMaster => axilWriteMasters(1),
-         axilWriteSlave  => axilWriteSlaves(1),
-         -- AXI Stream Interface (axisClk domain)
-         axisClk         => dmaClk,
-         axisRst         => dmaRst,
-         sAxisMasters    => dmaObMasters,
-         sAxisSlaves     => dmaObSlaves,
-         mAxisMasters    => dmaIbMasters,
-         mAxisSlaves     => dmaIbSlaves,
-         -- AXI4 Interfaces (axiClk domain)
-         axiClk          => dmaClk,
-         axiRst          => dmaRst,
-         sAxiWriteMaster => pipIbMaster,
-         sAxiWriteSlave  => pipIbSlave,
-         mAxiWriteMaster => pipObMaster,
-         mAxiWriteSlave  => pipObSlave);
+--   -------------
+--   -- PIP Module
+--   -------------
+--   U_AxiPciePipCore : entity work.AxiPciePipCore
+--      generic map (
+--         TPD_G             => TPD_G,
+--         NUM_AXIS_G        => DMA_SIZE_C,
+--         DMA_AXIS_CONFIG_G => DMA_AXIS_CONFIG_C)
+--      port map (
+--         -- AXI4-Lite Interfaces (axilClk domain)
+--         axilClk         => axilClk,
+--         axilRst         => axilRst,
+--         axilReadMaster  => axilReadMasters(1),
+--         axilReadSlave   => axilReadSlaves(1),
+--         axilWriteMaster => axilWriteMasters(1),
+--         axilWriteSlave  => axilWriteSlaves(1),
+--         -- AXI Stream Interface (axisClk domain)
+--         axisClk         => dmaClk,
+--         axisRst         => dmaRst,
+--         sAxisMasters    => dmaObMasters,
+--         sAxisSlaves     => dmaObSlaves,
+--         mAxisMasters    => dmaIbMasters,
+--         mAxisSlaves     => dmaIbSlaves,
+--         -- AXI4 Interfaces (axiClk domain)
+--         axiClk          => dmaClk,
+--         axiRst          => dmaRst,
+--         sAxiWriteMaster => pipIbMaster,
+--         sAxiWriteSlave  => pipIbSlave,
+--         mAxiWriteMaster => pipObMaster,
+--         mAxiWriteSlave  => pipObSlave);
 
 end top_level;
 

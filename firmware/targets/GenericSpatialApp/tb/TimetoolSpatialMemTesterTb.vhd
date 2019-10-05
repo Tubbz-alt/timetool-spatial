@@ -28,7 +28,8 @@ architecture testbed of TimetoolSpatialMemTesterTb is
 
    constant TPD_G : time := 1 ns;
 
-   constant DDR_WIDTH_C : PositiveArray(3 downto 0) := (0 => 72, 1 => 64, 2 => 72, 3 => 72);
+   --constant DDR_WIDTH_C : PositiveArray(0 downto 0) := (0 => 72, 1 => 64, 2 => 72, 3 => 72);
+   constant DDR_WIDTH_C : PositiveArray(0 downto 0) := (0 => 72);
 
    component Ddr4ModelWrapper
       generic (
@@ -55,10 +56,10 @@ architecture testbed of TimetoolSpatialMemTesterTb is
 
    signal ddrClockP : sl := '0';
    signal ddrClockN : sl := '1';
-   signal ddrClkP   : slv(3 downto 0);
-   signal ddrClkN   : slv(3 downto 0);
-   signal ddrOut    : DdrOutArray(3 downto 0);
-   signal ddrInOut  : DdrInOutArray(3 downto 0);
+   signal ddrClkP   : slv(0 downto 0);
+   signal ddrClkN   : slv(0 downto 0);
+   signal ddrOut    : DdrOutArray(0 downto 0);
+   signal ddrInOut  : DdrInOutArray(0 downto 0);
 
 begin
 
@@ -83,7 +84,7 @@ begin
    ddrClkP <= (others => ddrClockP);
    ddrClkN <= (others => ddrClockN);
 
-   GEN_VEC : for i in 3 downto 0 generate
+   GEN_VEC : for i in 0 downto 0 generate
       U_Ddr4Model : entity work.Ddr4ModelWrapper
          generic map (
             DDR_WIDTH_G => DDR_WIDTH_C(i))
