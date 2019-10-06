@@ -101,24 +101,12 @@ architecture top_level of TimetoolSpatialMemTester is
 
    constant CLK_FREQUENCY_C : real := 156.25E+6;  -- units of Hz
 
-   constant NUM_AXIL_MASTERS_C : natural := 4;
+   constant NUM_AXIL_MASTERS_C : natural := 1;
 
    constant AXIL_XBAR_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXIL_MASTERS_C-1 downto 0) := (
       0               => (
          baseAddr     => x"0010_0000",
          addrBits     => 20,
-         connectivity => x"FFFF"),
-      1               => (
-         baseAddr     => x"0020_0000",
-         addrBits     => 21,
-         connectivity => x"FFFF"),
-      2               => (
-         baseAddr     => x"0040_0000",
-         addrBits     => 22,
-         connectivity => x"FFFF"),
-      3               => (
-         baseAddr     => x"0080_0000",
-         addrBits     => 23,
          connectivity => x"FFFF"));
 
    signal userClk156       : sl;
@@ -272,27 +260,27 @@ begin
          qsfp1TxP     => qsfp1TxP,
          qsfp1TxN     => qsfp1TxN);
 
-   --------------------
-   -- MIG[3:0] IP Cores
-   --------------------
-   U_Mig : entity work.MigAll
-      generic map (
-         TPD_G => TPD_G)
-      port map (
-         extRst          => dmaRst,
-         -- AXI MEM Interface
-         axiClk(0)          => ddrClk(0),
-         axiRst(0)          => ddrRst(0),
-         axiReady(0)        => ddrReady(0),
-         axiWriteMasters(0) => ddrWriteMasters(0),
-         axiWriteSlaves(0)  => ddrWriteSlaves(0),
-         axiReadMasters(0)  => ddrReadMasters(0),
-         axiReadSlaves(0)   => ddrReadSlaves(0),
-         -- DDR Ports
-         ddrClkP(0)         => ddrClkP(0),
-         ddrClkN(0)         => ddrClkN(0),
-         ddrOut(0)          => ddrOut(0),
-         ddrInOut(0)        => ddrInOut(0));
+--   --------------------
+--   -- MIG[3:0] IP Cores
+--   --------------------
+--   U_Mig : entity work.MigAll
+--      generic map (
+--         TPD_G => TPD_G)
+--      port map (
+--         extRst          => dmaRst,
+--         -- AXI MEM Interface
+--         axiClk(0)          => ddrClk(0),
+--         axiRst(0)          => ddrRst(0),
+--         axiReady(0)        => ddrReady(0),
+--         axiWriteMasters(0) => ddrWriteMasters(0),
+--         axiWriteSlaves(0)  => ddrWriteSlaves(0),
+--         axiReadMasters(0)  => ddrReadMasters(0),
+--         axiReadSlaves(0)   => ddrReadSlaves(0),
+--         -- DDR Ports
+--         ddrClkP(0)         => ddrClkP(0),
+--         ddrClkN(0)         => ddrClkN(0),
+--         ddrOut(0)          => ddrOut(0),
+--         ddrInOut(0)        => ddrInOut(0));
 
    --------------------
    -- AXI-Lite Crossbar
@@ -316,7 +304,7 @@ begin
          mAxiReadSlaves      => axilReadSlaves);
 
    ---------------------------
-   -- DDR Memory Tester Module
+   -- Spatial Accel Wrapper 
    ---------------------------
    U_AccelWrapper : entity work.AccelWrapper
       generic map (
@@ -339,37 +327,6 @@ begin
          ddrWriteSlaves(0)  => ddrWriteSlaves(0),
          ddrReadMasters(0)  => ddrReadMasters(0),
          ddrReadSlaves(0)   => ddrReadSlaves(0));
-
---   -------------
---   -- PIP Module
---   -------------
---   U_AxiPciePipCore : entity work.AxiPciePipCore
---      generic map (
---         TPD_G             => TPD_G,
---         NUM_AXIS_G        => DMA_SIZE_C,
---         DMA_AXIS_CONFIG_G => DMA_AXIS_CONFIG_C)
---      port map (
---         -- AXI4-Lite Interfaces (axilClk domain)
---         axilClk         => axilClk,
---         axilRst         => axilRst,
---         axilReadMaster  => axilReadMasters(1),
---         axilReadSlave   => axilReadSlaves(1),
---         axilWriteMaster => axilWriteMasters(1),
---         axilWriteSlave  => axilWriteSlaves(1),
---         -- AXI Stream Interface (axisClk domain)
---         axisClk         => dmaClk,
---         axisRst         => dmaRst,
---         sAxisMasters    => dmaObMasters,
---         sAxisSlaves     => dmaObSlaves,
---         mAxisMasters    => dmaIbMasters,
---         mAxisSlaves     => dmaIbSlaves,
---         -- AXI4 Interfaces (axiClk domain)
---         axiClk          => dmaClk,
---         axiRst          => dmaRst,
---         sAxiWriteMaster => pipIbMaster,
---         sAxiWriteSlave  => pipIbSlave,
---         mAxiWriteMaster => pipObMaster,
---         mAxiWriteSlave  => pipObSlave);
 
 end top_level;
 
