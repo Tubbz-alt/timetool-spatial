@@ -31,7 +31,8 @@ parser.add_argument(
     "--dev", 
     nargs    = '+',
     required = False,
-    default  = ['/dev/datadev_0'],
+    default = ['sim'],
+    #default  = ['/dev/datadev_0'],
     # default  = ['/dev/datadev_0','/dev/datadev_1'],
     help     = 'List of devices',
 )  
@@ -181,7 +182,7 @@ base = MyRoot(name='pciServer',description='Generic Spatial Application Wrapper'
 #################################################################
 
 if (args.noninteractive):
-    execute(base.Fpga.SpatialBox, args.cliargs)
+    execute(base, args.cliargs)
     base.stop()
 else:
     # Create GUI
