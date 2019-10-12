@@ -43,7 +43,11 @@ entity AccelWrapper is
       ddrWriteMasters : out AxiWriteMasterArray(0 downto 0);
       ddrWriteSlaves  : in  AxiWriteSlaveArray(0 downto 0);
       ddrReadMasters  : out AxiReadMasterArray(0 downto 0);
-      ddrReadSlaves   : in  AxiReadSlaveArray(0 downto 0));
+      ddrReadSlaves   : in  AxiReadSlaveArray(0 downto 0);
+      axiStreamInMaster : in AxiStreamMasterType;
+      axiStreamInSlave :  out AxiStreamSlaveType;
+      axiStreamOutMaster : out AxiStreamMasterType;
+      axiStreamOutSlave  : in AxiStreamSlaveType);
 
 attribute dont_touch : string;
 attribute dont_touch of AccelWrapper : entity is "true";
@@ -54,8 +58,8 @@ architecture top_level of AccelWrapper is
 
 
 
-    -- Declare Top interface to be backed by verilog --
-    component Top
+    -- Declare SpatialIP interface to be backed by verilog --
+    component SpatialIP
       port (
         clock           : in std_logic;
         reset           : in std_logic;
@@ -120,7 +124,26 @@ architecture top_level of AccelWrapper is
         io_M_AXI_0_BUSER          : in std_logic_vector(3 downto 0) := (others => '-');
         io_M_AXI_0_BRESP          : in std_logic_vector(1 downto 0);
         io_M_AXI_0_BVALID         : in std_logic;
-        io_M_AXI_0_BREADY         : out std_logic
+        io_M_AXI_0_BREADY         : out std_logic;
+	-- AXI Stream --
+ 	io_AXIS_IN_TVALID				: in std_logic;
+ 	io_AXIS_IN_TREADY				: out std_logic;
+ 	io_AXIS_IN_TDATA					: in std_logic_vector(255 downto 0);
+ 	io_AXIS_IN_TSTRB					: in std_logic_vector(31 downto 0);
+ 	io_AXIS_IN_TKEEP					: in std_logic_vector(31 downto 0);
+ 	io_AXIS_IN_TLAST					: in std_logic;
+ 	io_AXIS_IN_TID					: in std_logic_vector(3 downto 0);
+ 	io_AXIS_IN_TDEST					: in std_logic_vector(3 downto 0);
+ 	io_AXIS_IN_TUSER					: in std_logic_vector(31 downto 0);
+ 	io_AXIS_OUT_TVALID				: out std_logic;
+ 	io_AXIS_OUT_TREADY				: in std_logic;
+ 	io_AXIS_OUT_TDATA				: out std_logic_vector(255 downto 0);
+ 	io_AXIS_OUT_TSTRB				: out std_logic_vector(31 downto 0);
+ 	io_AXIS_OUT_TKEEP				: out std_logic_vector(31 downto 0);
+ 	io_AXIS_OUT_TLAST				: out std_logic;
+ 	io_AXIS_OUT_TID					: out std_logic_vector(3 downto 0);
+ 	io_AXIS_OUT_TUSER				: out std_logic_vector(31 downto 0); 
+ 	io_AXIS_OUT_TDEST				: out std_logic_vector(3 downto 0);
 	);
    end component;
 
@@ -263,8 +286,8 @@ begin
          mAxiReadMasters     => axilReadMasters,
          mAxiReadSlaves      => axilReadSlaves);
 
-   --  Stitch Top into wrapper --
-   U_Top :  Top
+   --  Stitch SpatialIP into wrapper --
+   U_SpatialIP :  SpatialIP
       port map (
          -- AXI-Lite Interface
          clock         => axilClk,
@@ -335,7 +358,26 @@ begin
          io_M_AXI_0_RREADY =>   axiReadMasters(0).rready,
          io_M_AXI_0_BRESP =>    axiWriteSlaves(0).bresp(1 downto 0),
          io_M_AXI_0_BVALID =>   axiWriteSlaves(0).bvalid,
-         io_M_AXI_0_BREADY =>  axiWriteMasters(0).bready);
+         io_M_AXI_0_BREADY =>  axiWriteMasters(0).bready,
+         io_AXIS_IN_TVALID =>  axiStreamInMaster.tValid, 
+         io_AXIS_IN_TREADY =>  axiStreamInSlave.tReady,
+         io_AXIS_IN_TDATA  =>  axiStreamInMaster.tData,                            
+         io_AXIS_IN_TSTRB  =>  axiStreamInMaster.tStrb,
+         io_AXIS_IN_TKEEP  =>  axiStreamInMaster.tKeep,                           
+         io_AXIS_IN_TLAST  =>  axiStreamInMaster.tLast,                            
+         io_AXIS_IN_TID    =>  axiStreamInMaster.tId, 
+         io_AXIS_IN_TDEST  =>  axiStreamInMaster.tDest, 
+         io_AXIS_IN_TUSER  =>  axiStreamInMaster.tUser, 
+         io_AXIS_OUT_TVALID =>   axiStreamOutMaster.tValid,                                                 
+         io_AXIS_OUT_TREADY =>   axiStreamOutSlave.tReady,                                                  
+         io_AXIS_OUT_TDATA  =>   axiStreamOutMaster.tData,                                                  
+         io_AXIS_OUT_TSTRB  =>   axiStreamOutMaster.tStrb,                                                  
+         io_AXIS_OUT_TKEEP  =>   axiStreamOutMaster.tKeep,                                                  
+         io_AXIS_OUT_TLAST  =>   axiStreamOutMaster.tLast,                                                  
+         io_AXIS_OUT_TID    =>   axiStreamOutMaster.tId,                                                    
+         io_AXIS_OUT_TDEST  =>   axiStreamOutMaster.tDest,                                                  
+         io_AXIS_OUT_TUSER  =>   axiStreamOutMaster.tUser
+);
 
 --         -- No ports on Top for these: --
 --   ------------------------

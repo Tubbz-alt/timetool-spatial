@@ -7,7 +7,7 @@ loadRuckusTcl $::env(PROJ_DIR)/../../submodules/axi-pcie-core/hardware/XilinxKcu
 loadRuckusTcl $::env(PROJ_DIR)/../../submodules/axi-pcie-core/hardware/XilinxKcu1500
 loadRuckusTcl $::env(PROJ_DIR)/../../common
 
-add_files -norecurse $::env(PROJ_DIR)/hdl/Top.v
+add_files -norecurse $::env(PROJ_DIR)/hdl/SpatialIP.v
 add_files -norecurse $::env(PROJ_DIR)/hdl/RetimeShiftRegister.sv
 add_files -norecurse $::env(PROJ_DIR)/hdl/AXI4LiteToRFBridgeVerilog.v
 

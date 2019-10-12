@@ -15,7 +15,7 @@ import pyrogue.interfaces.simulation
 
 import axipcie  as pcie
 import surf.axi as axi
-from _AccelTop import AccelTop
+from _AccelUnit import AccelUnit
 from TopHost import execute
 
 #################################################################
@@ -101,7 +101,7 @@ class Fpga(pr.Device):
             expand       = False, 
         ))   
         
-        self.add(AccelTop(
+        self.add(AccelUnit(
             name    = f'SpatialBox',
             offset  = 0x00100000, 
             expand  = False, 
@@ -166,12 +166,12 @@ class MyRoot(pr.Root):
         ))                    
 	    	
 
-        # Start the system
-        self.start(
-            pollEn   = False if(args.dev[0]=='sim') else args.pollEn,
-            initRead = False if(args.dev[0]=='sim') else args.initRead,
-            timeout  = 5.0 if(args.dev[0]=='sim') else 1.0,
-        )
+#        # Start the system
+#        self.start(
+#            pollEn   = False if(args.dev[0]=='sim') else args.pollEn,
+#            initRead = False if(args.dev[0]=='sim') else args.initRead,
+#            timeout  = 5.0 if(args.dev[0]=='sim') else 1.0,
+#        )
         
                    
 #################################################################
@@ -196,3 +196,9 @@ else:
     base.stop()
 
 
+
+# Debug stuff
+#base.Fpga.add(pr.Device(name='mem', offset=0x1000, size=256))
+#x = bytearray([i for i in range(256)])
+#base.start(pollEn = False, timeout=5, initRead = False)
+#base.Fpga._rawWrite(0, x)

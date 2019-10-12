@@ -326,7 +326,13 @@ begin
          ddrWriteMasters(0) => ddrWriteMasters(0),
          ddrWriteSlaves(0)  => ddrWriteSlaves(0),
          ddrReadMasters(0)  => ddrReadMasters(0),
-         ddrReadSlaves(0)   => ddrReadSlaves(0));
+         ddrReadSlaves(0)   => ddrReadSlaves(0),
+	 -- Stream interface
+ 	 axiStreamInMaster  => open,
+	 axiStreamInSlave   => open,
+	 axiStreamOutMaster => open,
+	 axiStreamOutSlave  => open
+);
 
 end top_level;
 
