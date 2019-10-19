@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
--- File       : AccelWrapper.vhd
+-- File       : SpatialIPWrapper.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -------------------------------------------------------------------------------
 -- Description: 
@@ -16,12 +16,15 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
+
+use work.SsiPkg.all;
 use work.StdRtlPkg.all;
 use work.AxiPkg.all;
 use work.AxiLitePkg.all;
 use work.MigPkg.all;
+use work.AxiStreamPkg.all;
 
-entity AccelWrapper is
+entity SpatialIPWrapper is
    generic (
       TPD_G            : time    := 1 ns;
       SIMULATION_G     : boolean := false;
@@ -50,11 +53,11 @@ entity AccelWrapper is
       axiStreamOutSlave  : in AxiStreamSlaveType);
 
 attribute dont_touch : string;
-attribute dont_touch of AccelWrapper : entity is "true";
+attribute dont_touch of SpatialIPWrapper : entity is "true";
 
-end AccelWrapper;
+end SpatialIPWrapper;
 
-architecture top_level of AccelWrapper is
+architecture top_level of SpatialIPWrapper is
 
 
 
@@ -128,22 +131,22 @@ architecture top_level of AccelWrapper is
 	-- AXI Stream --
  	io_AXIS_IN_TVALID				: in std_logic;
  	io_AXIS_IN_TREADY				: out std_logic;
- 	io_AXIS_IN_TDATA					: in std_logic_vector(255 downto 0);
- 	io_AXIS_IN_TSTRB					: in std_logic_vector(31 downto 0);
- 	io_AXIS_IN_TKEEP					: in std_logic_vector(31 downto 0);
+ 	io_AXIS_IN_TDATA					: in std_logic_vector(511 downto 0);
+ 	io_AXIS_IN_TSTRB					: in std_logic_vector(63 downto 0);
+ 	io_AXIS_IN_TKEEP					: in std_logic_vector(63 downto 0);
  	io_AXIS_IN_TLAST					: in std_logic;
- 	io_AXIS_IN_TID					: in std_logic_vector(3 downto 0);
- 	io_AXIS_IN_TDEST					: in std_logic_vector(3 downto 0);
- 	io_AXIS_IN_TUSER					: in std_logic_vector(31 downto 0);
+ 	io_AXIS_IN_TID					: in std_logic_vector(7 downto 0);
+ 	io_AXIS_IN_TDEST					: in std_logic_vector(7 downto 0);
+ 	io_AXIS_IN_TUSER					: in std_logic_vector(511 downto 0);
  	io_AXIS_OUT_TVALID				: out std_logic;
  	io_AXIS_OUT_TREADY				: in std_logic;
- 	io_AXIS_OUT_TDATA				: out std_logic_vector(255 downto 0);
- 	io_AXIS_OUT_TSTRB				: out std_logic_vector(31 downto 0);
- 	io_AXIS_OUT_TKEEP				: out std_logic_vector(31 downto 0);
+ 	io_AXIS_OUT_TDATA				: out std_logic_vector(511 downto 0);
+ 	io_AXIS_OUT_TSTRB				: out std_logic_vector(63 downto 0);
+ 	io_AXIS_OUT_TKEEP				: out std_logic_vector(63 downto 0);
  	io_AXIS_OUT_TLAST				: out std_logic;
- 	io_AXIS_OUT_TID					: out std_logic_vector(3 downto 0);
- 	io_AXIS_OUT_TUSER				: out std_logic_vector(31 downto 0); 
- 	io_AXIS_OUT_TDEST				: out std_logic_vector(3 downto 0);
+ 	io_AXIS_OUT_TID					: out std_logic_vector(7 downto 0);
+ 	io_AXIS_OUT_TUSER				: out std_logic_vector(511 downto 0); 
+ 	io_AXIS_OUT_TDEST				: out std_logic_vector(7 downto 0)
 	);
    end component;
 
@@ -251,6 +254,11 @@ architecture top_level of AccelWrapper is
    signal axiReadMasters  : AxiReadMasterArray(0 downto 0)  := (others => AXI_READ_MASTER_FORCE_C);
    signal axiReadSlaves   : AxiReadSlaveArray(0 downto 0)   := (others => AXI_READ_SLAVE_FORCE_C);
 
+   signal axiStreamInCnvtMaster : AxiStreamMasterType;
+   signal axiStreamInCnvtSlave  :  AxiStreamSlaveType;
+   signal axiStreamOutCnvtMaster  : AxiStreamMasterType;
+   signal axiStreamOutCnvtSlave   :  AxiStreamSlaveType;
+
    signal memReady : slv(NUM_AXIL_MASTERS_C-1 downto 0);
    signal memError : slv(NUM_AXIL_MASTERS_C-1 downto 0);
 
@@ -292,7 +300,7 @@ begin
          -- AXI-Lite Interface
          clock         => axilClk,
          reset         => axilRst,
-
+         
          io_S_AXI_AWADDR     =>  axilWriteMasters(0).awaddr(31 downto 0), 
          io_S_AXI_AWPROT     =>  axilWriteMasters(0).awprot(2 downto 0), 
          io_S_AXI_AWVALID    =>  axilWriteMasters(0).awvalid, 
@@ -359,85 +367,26 @@ begin
          io_M_AXI_0_BRESP =>    axiWriteSlaves(0).bresp(1 downto 0),
          io_M_AXI_0_BVALID =>   axiWriteSlaves(0).bvalid,
          io_M_AXI_0_BREADY =>  axiWriteMasters(0).bready,
-         io_AXIS_IN_TVALID =>  axiStreamInMaster.tValid, 
-         io_AXIS_IN_TREADY =>  axiStreamInSlave.tReady,
-         io_AXIS_IN_TDATA  =>  axiStreamInMaster.tData,                            
-         io_AXIS_IN_TSTRB  =>  axiStreamInMaster.tStrb,
-         io_AXIS_IN_TKEEP  =>  axiStreamInMaster.tKeep,                           
-         io_AXIS_IN_TLAST  =>  axiStreamInMaster.tLast,                            
-         io_AXIS_IN_TID    =>  axiStreamInMaster.tId, 
-         io_AXIS_IN_TDEST  =>  axiStreamInMaster.tDest, 
-         io_AXIS_IN_TUSER  =>  axiStreamInMaster.tUser, 
-         io_AXIS_OUT_TVALID =>   axiStreamOutMaster.tValid,                                                 
-         io_AXIS_OUT_TREADY =>   axiStreamOutSlave.tReady,                                                  
-         io_AXIS_OUT_TDATA  =>   axiStreamOutMaster.tData,                                                  
-         io_AXIS_OUT_TSTRB  =>   axiStreamOutMaster.tStrb,                                                  
-         io_AXIS_OUT_TKEEP  =>   axiStreamOutMaster.tKeep,                                                  
-         io_AXIS_OUT_TLAST  =>   axiStreamOutMaster.tLast,                                                  
-         io_AXIS_OUT_TID    =>   axiStreamOutMaster.tId,                                                    
-         io_AXIS_OUT_TDEST  =>   axiStreamOutMaster.tDest,                                                  
-         io_AXIS_OUT_TUSER  =>   axiStreamOutMaster.tUser
+         io_AXIS_IN_TVALID =>    axiStreamInCnvtMaster.tValid, 
+         io_AXIS_IN_TREADY =>    axiStreamInCnvtSlave.tReady,
+         io_AXIS_IN_TDATA  =>    axiStreamInCnvtMaster.tData,                            
+         io_AXIS_IN_TSTRB  =>    axiStreamInCnvtMaster.tStrb,
+         io_AXIS_IN_TKEEP  =>    axiStreamInCnvtMaster.tKeep,                           
+         io_AXIS_IN_TLAST  =>    axiStreamInCnvtMaster.tLast,                            
+         io_AXIS_IN_TID    =>    axiStreamInCnvtMaster.tId, 
+         io_AXIS_IN_TDEST  =>    axiStreamInCnvtMaster.tDest, 
+         io_AXIS_IN_TUSER  =>    axiStreamInCnvtMaster.tUser, 
+         io_AXIS_OUT_TVALID =>   axiStreamOutCnvtMaster.tValid,                                                 
+         io_AXIS_OUT_TREADY =>   axiStreamOutCnvtSlave.tReady,                                                  
+         io_AXIS_OUT_TDATA  =>   axiStreamOutCnvtMaster.tData,                                                  
+         io_AXIS_OUT_TSTRB  =>   axiStreamOutCnvtMaster.tStrb,                                                  
+         io_AXIS_OUT_TKEEP  =>   axiStreamOutCnvtMaster.tKeep,                                                  
+         io_AXIS_OUT_TLAST  =>   axiStreamOutCnvtMaster.tLast,                                                  
+         io_AXIS_OUT_TID    =>   axiStreamOutCnvtMaster.tId,                                                    
+         io_AXIS_OUT_TDEST  =>   axiStreamOutCnvtMaster.tDest,                                                  
+         io_AXIS_OUT_TUSER  =>   axiStreamOutCnvtMaster.tUser
 );
 
---         -- No ports on Top for these: --
---   ------------------------
---   -- Memory Tester Modules
---   ------------------------
---      U_AxiMemTester : entity work.AxiMemTester
---         generic map (
---            TPD_G        => TPD_G,
---            START_ADDR_G => START_ADDR_C,
---            STOP_ADDR_G  => ite(SIM_SPEEDUP_G and SIMULATION_G, toSlv(32*4096, MEM_AXI_CONFIG_C.ADDR_WIDTH_C), STOP_ADDR_C),
---            AXI_CONFIG_G => MEM_AXI_CONFIG_C)
---         port map (
---            -- AXI-Lite Interface
---            axilClk         => axilClk,
---            axilRst         => axilRst,
---            axilReadMaster  =>  axilReadMasters(0),
---            axilReadSlave   =>   axilReadSlaves(0),
---            axilWriteMaster => axilWriteMasters(0),
---            axilWriteSlave  =>  axilWriteSlaves(0),
---            memReady        =>         memReady(0),
---            memError        =>         memError(0),
---            -- DDR Memory Interface
---            axiClk          => axilClk,
---            axiRst          => axilRst,
---            start           =>        ddrReady(0),
---            axiWriteMaster  => axiWriteMasters(0),
---            axiWriteSlave   =>  axiWriteSlaves(0),
---            axiReadMaster   =>  axiReadMasters(0),
---            axiReadSlave    =>   axiReadSlaves(0));
---         
---
-----   ------------------------
-----   -- Memory Tester Modules
-----   ------------------------
-----   GEN_VEC : for i in NUM_AXIL_MASTERS_C-1 downto 1 generate
-----      U_AxiMemTester : entity work.AxiMemTester
-----         generic map (
-----            TPD_G        => TPD_G,
-----            START_ADDR_G => START_ADDR_C,
-----            STOP_ADDR_G  => ite(SIM_SPEEDUP_G and SIMULATION_G, toSlv(32*4096, MEM_AXI_CONFIG_C.ADDR_WIDTH_C), STOP_ADDR_C),
-----            AXI_CONFIG_G => MEM_AXI_CONFIG_C)
-----         port map (
-----            -- AXI-Lite Interface
-----            axilClk         => axilClk,
-----            axilRst         => axilRst,
-----            axilReadMaster  => axilReadMasters(i),
-----            axilReadSlave   => axilReadSlaves(i),
-----            axilWriteMaster => axilWriteMasters(i),
-----            axilWriteSlave  => axilWriteSlaves(i),
-----            memReady        => memReady(i),
-----            memError        => memError(i),
-----            -- DDR Memory Interface
-----            axiClk          => axilClk,
-----            axiRst          => axilRst,
-----            start           => ddrReady(i),
-----            axiWriteMaster  => axiWriteMasters(i),
-----            axiWriteSlave   => axiWriteSlaves(i),
-----            axiReadMaster   => axiReadMasters(i),
-----            axiReadSlave    => axiReadSlaves(i));
-----
    ------------------------
    -- MIG
    ------------------------
@@ -530,168 +479,51 @@ begin
             m_axi_rready   => ddrReadMasters(0).rready);
 
 
-
-
-
-
-
-
-
-
--- TESTING STUFF
-
---   GEN_VEC : for i in NUM_AXIL_MASTERS_C-1 downto 0 generate
---      U_AxiMemTester : entity work.AxiMemTester
---         generic map (
---            TPD_G        => TPD_G,
---            START_ADDR_G => START_ADDR_C,
---            STOP_ADDR_G  => ite(SIM_SPEEDUP_G and SIMULATION_G, toSlv(32*4096, MEM_AXI_CONFIG_C.ADDR_WIDTH_C), STOP_ADDR_C),
---            AXI_CONFIG_G => MEM_AXI_CONFIG_C)
---         port map (
---            -- AXI-Lite Interface
---            axilClk         => axilClk,
---            axilRst         => axilRst,
---            axilReadMaster  => axilReadMasters(i),
---            axilReadSlave   => axilReadSlaves(i),
---            axilWriteMaster => axilWriteMasters(i),
---            axilWriteSlave  => axilWriteSlaves(i),
---            memReady        => memReady(i),
---            memError        => memError(i),
---            -- DDR Memory Interface
---            axiClk          => axilClk,
---            axiRst          => axilRst,
---            start           => ddrReady(i),
---            axiWriteMaster  => axiWriteMasters(i),
---            axiWriteSlave   => axiWriteSlaves(i),
---            axiReadMaster   => axiReadMasters(i),
---            axiReadSlave    => axiReadSlaves(i));
-
---      U_Clk_Convt : XilinxKcu1500MigClkConvt
---         port map (
---            -- Slave Ports
---            s_axi_aclk     => axilClk,
---            s_axi_aresetn  => axilRstL,
---            s_axi_awid     => axiWriteMasters(i).awid(3 downto 0),
---            s_axi_awaddr   => axiWriteMasters(i).awaddr(31 downto 0),
---            s_axi_awlen    => axiWriteMasters(i).awlen(7 downto 0),
---            s_axi_awsize   => axiWriteMasters(i).awsize(2 downto 0),
---            s_axi_awburst  => axiWriteMasters(i).awburst(1 downto 0),
---            s_axi_awlock   => axiWriteMasters(i).awlock(0 downto 0),
---            s_axi_awcache  => axiWriteMasters(i).awcache(3 downto 0),
---            s_axi_awprot   => axiWriteMasters(i).awprot(2 downto 0),
---            s_axi_awregion => axiWriteMasters(i).awregion(3 downto 0),
---            s_axi_awqos    => axiWriteMasters(i).awqos(3 downto 0),
---            s_axi_awvalid  => axiWriteMasters(i).awvalid,
---            s_axi_awready  => axiWriteSlaves(i).awready,
---            s_axi_wdata    => axiWriteMasters(i).wdata(511 downto 0),
---            s_axi_wstrb    => axiWriteMasters(i).wstrb(63 downto 0),
---            s_axi_wlast    => axiWriteMasters(i).wlast,
---            s_axi_wvalid   => axiWriteMasters(i).wvalid,
---            s_axi_wready   => axiWriteSlaves(i).wready,
---            s_axi_bid      => axiWriteSlaves(i).bid(3 downto 0),
---            s_axi_bresp    => axiWriteSlaves(i).bresp(1 downto 0),
---            s_axi_bvalid   => axiWriteSlaves(i).bvalid,
---            s_axi_bready   => axiWriteMasters(i).bready,
---            s_axi_arid     => axiReadMasters(i).arid(3 downto 0),
---            s_axi_araddr   => axiReadMasters(i).araddr(31 downto 0),
---            s_axi_arlen    => axiReadMasters(i).arlen(7 downto 0),
---            s_axi_arsize   => axiReadMasters(i).arsize(2 downto 0),
---            s_axi_arburst  => axiReadMasters(i).arburst(1 downto 0),
---            s_axi_arlock   => axiReadMasters(i).arlock(0 downto 0),
---            s_axi_arcache  => axiReadMasters(i).arcache(3 downto 0),
---            s_axi_arprot   => axiReadMasters(i).arprot(2 downto 0),
---            s_axi_arregion => axiReadMasters(i).arregion(3 downto 0),
---            s_axi_arqos    => axiReadMasters(i).arqos(3 downto 0),
---            s_axi_arvalid  => axiReadMasters(i).arvalid,
---            s_axi_arready  => axiReadSlaves(i).arready,
---            s_axi_rid      => axiReadSlaves(i).rid(3 downto 0),
---            s_axi_rdata    => axiReadSlaves(i).rdata(511 downto 0),
---            s_axi_rresp    => axiReadSlaves(i).rresp(1 downto 0),
---            s_axi_rlast    => axiReadSlaves(i).rlast,
---            s_axi_rvalid   => axiReadSlaves(i).rvalid,
---            s_axi_rready   => axiReadMasters(i).rready,
---            -- Master Ports
---            m_axi_aclk     => ddrClk(i),
---            m_axi_aresetn  => ddrRstL(i),
---            m_axi_awid     => ddrWriteMasters(i).awid(3 downto 0),
---            m_axi_awaddr   => ddrWriteMasters(i).awaddr(31 downto 0),
---            m_axi_awlen    => ddrWriteMasters(i).awlen(7 downto 0),
---            m_axi_awsize   => ddrWriteMasters(i).awsize(2 downto 0),
---            m_axi_awburst  => ddrWriteMasters(i).awburst(1 downto 0),
---            m_axi_awlock   => ddrWriteMasters(i).awlock(0 downto 0),
---            m_axi_awcache  => ddrWriteMasters(i).awcache(3 downto 0),
---            m_axi_awprot   => ddrWriteMasters(i).awprot(2 downto 0),
---            m_axi_awregion => ddrWriteMasters(i).awregion(3 downto 0),
---            m_axi_awqos    => ddrWriteMasters(i).awqos(3 downto 0),
---            m_axi_awvalid  => ddrWriteMasters(i).awvalid,
---            m_axi_awready  => ddrWriteSlaves(i).awready,
---            m_axi_wdata    => ddrWriteMasters(i).wdata(511 downto 0),
---            m_axi_wstrb    => ddrWriteMasters(i).wstrb(63 downto 0),
---            m_axi_wlast    => ddrWriteMasters(i).wlast,
---            m_axi_wvalid   => ddrWriteMasters(i).wvalid,
---            m_axi_wready   => ddrWriteSlaves(i).wready,
---            m_axi_bid      => ddrWriteSlaves(i).bid(3 downto 0),
---            m_axi_bresp    => ddrWriteSlaves(i).bresp(1 downto 0),
---            m_axi_bvalid   => ddrWriteSlaves(i).bvalid,
---            m_axi_bready   => ddrWriteMasters(i).bready,
---            m_axi_arid     => ddrReadMasters(i).arid(3 downto 0),
---            m_axi_araddr   => ddrReadMasters(i).araddr(31 downto 0),
---            m_axi_arlen    => ddrReadMasters(i).arlen(7 downto 0),
---            m_axi_arsize   => ddrReadMasters(i).arsize(2 downto 0),
---            m_axi_arburst  => ddrReadMasters(i).arburst(1 downto 0),
---            m_axi_arlock   => ddrReadMasters(i).arlock(0 downto 0),
---            m_axi_arcache  => ddrReadMasters(i).arcache(3 downto 0),
---            m_axi_arprot   => ddrReadMasters(i).arprot(2 downto 0),
---            m_axi_arregion => ddrReadMasters(i).arregion(3 downto 0),
---            m_axi_arqos    => ddrReadMasters(i).arqos(3 downto 0),
---            m_axi_arvalid  => ddrReadMasters(i).arvalid,
---            m_axi_arready  => ddrReadSlaves(i).arready,
---            m_axi_rid      => ddrReadSlaves(i).rid(3 downto 0),
---            m_axi_rdata    => ddrReadSlaves(i).rdata(511 downto 0),
---            m_axi_rresp    => ddrReadSlaves(i).rresp(1 downto 0),
---            m_axi_rlast    => ddrReadSlaves(i).rlast,
---            m_axi_rvalid   => ddrReadSlaves(i).rvalid,
---            m_axi_rready   => ddrReadMasters(i).rready);
---
---   end generate GEN_VEC;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
---   GEN_SIM_CHECK : if (SIM_SELF_CHECK_G) and (SIMULATION_G) generate
---
---      process(axilClk)
---         variable i : natural;
---      begin
---         if rising_edge(axilClk) then
---            passed <= uAnd(memReady) after TPD_G;
---            failed <= uOr(memError)  after TPD_G;
---         end if;
---      end process;
---
---      process(failed, passed)
---      begin
---         if passed = '1' then
---            assert false
---               report "Simulation Passed!" severity failure;
---         end if;
---         if failed = '1' then
---            assert false
---               report "Simulation Failed!" severity failure;
---         end if;
---      end process;
---
---   end generate;
+            U_AXIS_FIFO_OUT : entity work.AxiStreamFifoV2
+               generic map (
+                  -- General Configurations
+                  TPD_G               => TPD_G,
+                  -- FIFO configurations
+                  BRAM_EN_G           => true,  -- Implement with BRAM
+                  GEN_SYNC_FIFO_G     => false, -- false = ASYNC FIFO
+                  FIFO_ADDR_WIDTH_G   => 9,     -- 2**9 = 512 deep 
+                  -- AXI Stream Port Configurations
+                  SLAVE_AXI_CONFIG_G  => ssiAxiStreamConfig(64), -- SLAVE.TDATA 64-bytes width
+                  MASTER_AXI_CONFIG_G => ssiAxiStreamConfig(64)) -- MASTER.TDATA 64-bytes width
+               port map (
+                  -- External Side
+                  mAxisClk    => ddrClk(0),
+                  mAxisRst    => ddrRst(0),
+                  mAxisMaster => axiStreamOutMaster, 
+                  mAxisSlave  => axiStreamOutSlave,
+                  -- SpatialIP Side
+                  sAxisClk    => axilClk,
+                  sAxisRst    => axilRst,
+                  sAxisMaster => axiStreamOutCnvtMaster,
+                  sAxisSlave  => axiStreamOutCnvtSlave);
+            
+            U_AXIS_FIFO_IN : entity work.AxiStreamFifoV2
+               generic map (
+                  -- General Configurations
+                  TPD_G               => TPD_G,
+                  -- FIFO configurations
+                  BRAM_EN_G           => true,  -- Implement with BRAM
+                  GEN_SYNC_FIFO_G     => false, -- false = ASYNC FIFO
+                  FIFO_ADDR_WIDTH_G   => 9,     -- 2**9 = 512 deep 
+                  -- AXI Stream Port Configurations
+                  SLAVE_AXI_CONFIG_G  => ssiAxiStreamConfig(64), -- SLAVE.TDATA 64-bytes width
+                  MASTER_AXI_CONFIG_G => ssiAxiStreamConfig(64)) -- MASTER.TDATA 64-bytes width
+               port map (
+                  -- External Side
+                  sAxisClk    => ddrClk(0),
+                  sAxisRst    => ddrRst(0),
+                  sAxisMaster => axiStreamInMaster,
+                  sAxisSlave  => axiStreamInSlave,
+                  -- App Side
+                  mAxisClk    =>axilClk,
+                  mAxisRst    =>axilRst,
+                  mAxisMaster => axiStreamInCnvtMaster,
+                  mAxisSlave  => axiStreamInCnvtSlave);
 
 end top_level;
 

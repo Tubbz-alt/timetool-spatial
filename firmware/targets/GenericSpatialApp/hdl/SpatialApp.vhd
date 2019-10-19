@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
--- File       : TimetoolSpatialMemTester.vhd
+-- File       : SpatialApp.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -------------------------------------------------------------------------------
 -- Description: Top-Level HDL
@@ -27,7 +27,7 @@ use work.MigPkg.all;
 library unisim;
 use unisim.vcomponents.all;
 
-entity TimetoolSpatialMemTester is
+entity SpatialApp is
    generic (
       TPD_G          : time    := 1 ns;
       ROGUE_SIM_EN_G : boolean := false;
@@ -87,11 +87,11 @@ entity TimetoolSpatialMemTester is
       pciTxP       : out   slv(7 downto 0);
       pciTxN       : out   slv(7 downto 0));
 attribute dont_touch : string;
-attribute dont_touch of TimetoolSpatialMemTester : entity is "true";
+attribute dont_touch of SpatialApp : entity is "true";
 
-end TimetoolSpatialMemTester;
+end SpatialApp;
 
-architecture top_level of TimetoolSpatialMemTester is
+architecture top_level of SpatialApp is
 
    constant ROGUE_SIM_PORT_NUM_C : natural range 1024 to 49151 := 8000;
 
@@ -183,6 +183,7 @@ begin
          ------------------------   
          userClk156     => userClk156,
          -- DMA Interfaces
+         -- TODO: Don't feel like handling two clock domains for now, put everyone on axil clock domain
          dmaClk         => dmaClk,
          dmaRst         => dmaRst,
          dmaObMasters   => dmaObMasters,
@@ -306,7 +307,7 @@ begin
    ---------------------------
    -- Spatial Accel Wrapper 
    ---------------------------
-   U_AccelWrapper : entity work.AccelWrapper
+   U_SpatialIPWrapper : entity work.SpatialIPWrapper
       generic map (
          TPD_G            => TPD_G,
          SIMULATION_G     => ROGUE_SIM_EN_G,
@@ -320,18 +321,18 @@ begin
          axilWriteMaster => axilWriteMasters(0),
          axilWriteSlave  => axilWriteSlaves(0),
          -- DDR Memory Interface
-         ddrClk(0)          => ddrClk(0),
-         ddrRst(0)          => ddrRst(0),
+         ddrClk(0)          => dmaClk, 
+         ddrRst(0)          => dmaRst,
          ddrReady(0)        => ddrReady(0),
          ddrWriteMasters(0) => ddrWriteMasters(0),
          ddrWriteSlaves(0)  => ddrWriteSlaves(0),
          ddrReadMasters(0)  => ddrReadMasters(0),
          ddrReadSlaves(0)   => ddrReadSlaves(0),
 	 -- Stream interface
- 	 axiStreamInMaster  => open,
-	 axiStreamInSlave   => open,
-	 axiStreamOutMaster => open,
-	 axiStreamOutSlave  => open
+ 	 axiStreamInMaster  => dmaObMasters(0),
+	 axiStreamInSlave   => dmaObSlaves(0),
+	 axiStreamOutMaster => dmaIbMasters(0),
+	 axiStreamOutSlave  => dmaIbSlaves(0)
 );
 
 end top_level;

@@ -18,6 +18,9 @@ import surf.axi as axi
 from _AccelUnit import AccelUnit
 from TopHost import execute
 
+from FrameMaster import FrameMaster
+from FrameSlave import FrameSlave
+
 #################################################################
 
 # Set the argument parser
@@ -107,57 +110,35 @@ class Fpga(pr.Device):
             expand  = False, 
         ))                    
             
-#        self.add(pcie.AxiPipCore(
-#            offset  = 0x00200000, 
-#            expand  = False, 
-#        ))
-        
 #################################################################
 
 class MyRoot(pr.Root):
     def __init__(   self,       
             name        = "MyRoot",
             description = "my root container",
+            pollEn   = False if(args.dev[0]=='sim') else args.pollEn,
+            initRead = False if(args.dev[0]=='sim') else args.initRead,
+            timeout  = 5.0 if(args.dev[0]=='sim') else 1.0,
             **kwargs):
         super().__init__(name=name, description=description, **kwargs)
         
         #################################################################
-        
         self.numPciDev  = len(args.dev) if (args.dev[0] != 'sim') else 1
         
         self.memMap    =                                                             [None for z in range(self.numPciDev)]
-        self.dmaStream = [[[None for x in range(args.numVc)] for y in range(args.numLane)] for z in range(self.numPciDev)]
-#        self.prbsRx    = [[[None for x in range(args.numVc)] for y in range(args.numLane)] for z in range(self.numPciDev)]
-#        self.prbTx     = [[[None for x in range(args.numVc)] for y in range(args.numLane)] for z in range(self.numPciDev)]  
-
-        
         #################################################################
         # VCS simulation
         if ( args.dev[0] == 'sim' ):            
-        
             self.memMap[0] = rogue.interfaces.memory.TcpClient('localhost',8000)
-            
-            # Create the DMA loopback channel
-            for lane in range(args.numLane):
-                for vc in range(args.numVc):
-                    self.dmaStream[0][lane][vc] = rogue.interfaces.stream.TcpClient('localhost',8002+(512*lane)+2*vc)           
 
         # DataDev PCIe Card
         else:
 
             for i in range(self.numPciDev):
-            
                 # Create PCIE memory mapped interface
                 self.memMap[i] = rogue.hardware.axi.AxiMemMap(args.dev[i])   
-                
-                # Create the DMA loopback channel
-                for lane in range(args.numLane):
-                    for vc in range(args.numVc):
-                        self.dmaStream[i][lane][vc] = rogue.hardware.axi.AxiStreamDma(args.dev[i],(0x100*lane)+vc,1)            
-                
         #################################################################
         
-
         # Add the FPGA device class
         self.add(Fpga(
             name    = f'Fpga',
@@ -165,19 +146,22 @@ class MyRoot(pr.Root):
             expand  = True, 
         ))                    
 	    	
+        if ( args.dev[0] == 'sim' ):  
+            # Setup frame in/out objects 
+            self.frameIn = FrameMaster() #pr.utilities.prbs.PrbsTx(name=('SwPrbsTx'),expand=True)
+            self.sendFramePort = rogue.interfaces.stream.TcpClient('localhost',8002)
+            pyrogue.streamConnect(self.frameIn, self.sendFramePort)
+            self.frameOut = FrameSlave()
+            self.receiveFramePort = rogue.interfaces.stream.TcpClient('localhost',8004)
+            pyrogue.streamConnect(self.receiveFramePort, self.frameOut)
 
-#        # Start the system
-#        self.start(
-#            pollEn   = False if(args.dev[0]=='sim') else args.pollEn,
-#            initRead = False if(args.dev[0]=='sim') else args.initRead,
-#            timeout  = 5.0 if(args.dev[0]=='sim') else 1.0,
-#        )
-        
-                   
+        # Start the system
+        self.start()
+
 #################################################################
 
 # Set base
-base = MyRoot(name='pciServer',description='Generic Spatial Application Wrapper')
+base = MyRoot(name='pciSystem',description='Generic Spatial Application Wrapper')
 
 #################################################################
 
@@ -197,8 +181,3 @@ else:
 
 
 
-# Debug stuff
-#base.Fpga.add(pr.Device(name='mem', offset=0x1000, size=256))
-#x = bytearray([i for i in range(256)])
-#base.start(pollEn = False, timeout=5, initRead = False)
-#base.Fpga._rawWrite(0, x)

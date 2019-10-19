@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
--- File       : TimetoolSpatialMemTesterTb.vhd
+-- File       : SpatialAppTb.vhd
 -- Company    : SLAC National Accelerator Laboratory
 -------------------------------------------------------------------------------
 -- Description: Simulation Testbed for testing the FPGA module
@@ -22,9 +22,9 @@ use work.StdRtlPkg.all;
 use work.BuildInfoPkg.all;
 use work.MigPkg.all;
 
-entity TimetoolSpatialMemTesterTb is end TimetoolSpatialMemTesterTb;
+entity SpatialAppTb is end SpatialAppTb;
 
-architecture testbed of TimetoolSpatialMemTesterTb is
+architecture testbed of SpatialAppTb is
 
    constant TPD_G : time := 1 ns;
 
@@ -105,7 +105,7 @@ begin
             c0_ddr4_odt      => ddrOut(i).odt);
    end generate GEN_VEC;
 
-   U_Fpga : entity work.TimetoolSpatialMemTester
+   U_Fpga : entity work.SpatialApp
       generic map (
          TPD_G          => TPD_G,
          ROGUE_SIM_EN_G => true,
