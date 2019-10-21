@@ -494,14 +494,24 @@ begin
                   -- External Side
                   mAxisClk    => ddrClk(0),
                   mAxisRst    => ddrRst(0),
-                  mAxisMaster => axiStreamOutMaster, 
+                  mAxisMaster.tvalid => axiStreamOutMaster.tvalid,
+                  mAxisMaster.tdata => axiStreamOutMaster.tdata, 
+                  --mAxisMaster.tstrb => axiStreamOutMaster.tstrb, 
+                  --mAxisMaster.tkeep => axiStreamOutMaster.tkeep, 
+                  mAxisMaster.tlast => axiStreamOutMaster.tlast, 
+                  --mAxisMaster.tid => axiStreamOutMaster.tid,
+                  mAxisMaster.tdest => axiStreamOutMaster.tdest,
+                  mAxisMaster.tuser => axiStreamOutMaster.tuser,
                   mAxisSlave  => axiStreamOutSlave,
                   -- SpatialIP Side
                   sAxisClk    => axilClk,
                   sAxisRst    => axilRst,
                   sAxisMaster => axiStreamOutCnvtMaster,
                   sAxisSlave  => axiStreamOutCnvtSlave);
-            
+            axiStreamOutMaster.tdest <= X"01";
+            axiStreamOutMaster.tkeep <= X"FFFFFFFFFFFFFFFF";
+            axiStreamOutMaster.tstrb <= X"FFFFFFFFFFFFFFFF";
+            --axiStreamOutMaster.tuser <= X"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002";
             U_AXIS_FIFO_IN : entity work.AxiStreamFifoV2
                generic map (
                   -- General Configurations

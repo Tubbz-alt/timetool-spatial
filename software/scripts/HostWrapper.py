@@ -155,11 +155,7 @@ class MyRoot(pr.Root):
             self.receiveFramePort = rogue.interfaces.stream.TcpClient('localhost',8004)
             pyrogue.streamConnect(self.receiveFramePort, self.frameOut)
 
-        # Start the system
         self.start()
-
-#################################################################
-
 # Set base
 base = MyRoot(name='pciSystem',description='Generic Spatial Application Wrapper')
 
