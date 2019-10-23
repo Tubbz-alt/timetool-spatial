@@ -22,3 +22,6 @@ set_property top {SpatialAppTb} [get_filesets sim_1]
 
 # Updating impl_1 strategy
 set_property strategy Performance_ExplorePostRoutePhysOpt [get_runs impl_1]
+
+# Top-level HDL doesn't match target dirname
+set_property top {SpatialApp} [get_filesets sources_1]
