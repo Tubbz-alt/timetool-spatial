@@ -172,8 +172,12 @@ architecture mapping of SpatialIPWrapper is
 
    signal appIbMaster : AxiStreamMasterType := AXI_STREAM_MASTER_INIT_C;
    signal appIbSlave  : AxiStreamSlaveType  := AXI_STREAM_SLAVE_FORCE_C;
+
    signal appObMaster : AxiStreamMasterType := AXI_STREAM_MASTER_INIT_C;
    signal appObSlave  : AxiStreamSlaveType  := AXI_STREAM_SLAVE_FORCE_C;
+
+   signal appObMasterSof : AxiStreamMasterType := AXI_STREAM_MASTER_INIT_C;
+   signal appObSlaveSof  : AxiStreamSlaveType  := AXI_STREAM_SLAVE_FORCE_C;
 
 begin
 
@@ -338,9 +342,9 @@ begin
          ddrReadMaster  => ddrReadMaster,
          ddrReadSlave   => ddrReadSlave);
 
-   ----------------------------------------------------
-   -- APP->DMA ASYNC FIFO + Insert SOF into tUser field
-   ----------------------------------------------------
+   ------------------------------
+   -- Insert SOF into tUser field
+   ------------------------------
    U_AXIS_FIFO_OUT : entity work.SsiInsertSof
       generic map (
          -- General Configurations
@@ -348,9 +352,38 @@ begin
          INT_PIPE_STAGES_G   => 1,      -- Help with making timing
          PIPE_STAGES_G       => 1,      -- Help with making timing      
          -- FIFO configurations         
-         COMMON_CLK_G        => false,  -- declaring ASYNC clock domains
-         SLAVE_FIFO_G        => true,   -- ASYNC input FIFO required
-         MASTER_FIFO_G       => false,  -- bypassing output FIFO
+         COMMON_CLK_G        => true,
+         SLAVE_FIFO_G        => true,
+         MASTER_FIFO_G       => false,
+         -- AXI Stream Port Configurations
+         SLAVE_AXI_CONFIG_G  => APP_AXIS_CONFIG_C,
+         MASTER_AXI_CONFIG_G => APP_AXIS_CONFIG_C)
+      port map (
+         -- APP Interface
+         sAxisClk    => axilClk,
+         sAxisRst    => axilRst,
+         sAxisMaster => appObMaster,
+         sAxisSlave  => appObSlave,
+         -- DMA Interface
+         mAxisClk    => axilClk,
+         mAxisRst    => axilRst,
+         mAxisMaster => appObMasterSof,
+         mAxisSlave  => appObSlaveSof);
+
+   ----------------
+   -- DMA->APP FIFO
+   ----------------
+   U_AXIS_FIFO_IN : entity work.AxiStreamFifoV2
+      generic map (
+         -- General Configurations
+         TPD_G               => TPD_G,
+         INT_PIPE_STAGES_G   => 1,         -- Help with making timing
+         PIPE_STAGES_G       => 1,         -- Help with making timing     
+         INT_WIDTH_SELECT_G  => "NARROW",  -- Help with making timing     
+         -- FIFO configurations
+         BRAM_EN_G           => true,      -- Implement with BRAM
+         GEN_SYNC_FIFO_G     => false,     -- false = ASYNC FIFO
+         FIFO_ADDR_WIDTH_G   => 9,         -- 2**9 = 512 deep 
          -- AXI Stream Port Configurations
          SLAVE_AXI_CONFIG_G  => APP_AXIS_CONFIG_C,
          MASTER_AXI_CONFIG_G => DMA_AXIS_CONFIG_G)
@@ -358,8 +391,8 @@ begin
          -- APP Interface
          sAxisClk    => axilClk,
          sAxisRst    => axilRst,
-         sAxisMaster => appObMaster,
-         sAxisSlave  => appObSlave,
+         sAxisMaster => appObMasterSof,
+         sAxisSlave  => appObSlaveSof,
          -- DMA Interface
          mAxisClk    => dmaClk,
          mAxisRst    => dmaRst,
