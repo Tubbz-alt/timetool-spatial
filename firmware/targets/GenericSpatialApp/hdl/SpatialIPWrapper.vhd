@@ -345,7 +345,7 @@ begin
    ------------------------------
    -- Insert SOF into tUser field
    ------------------------------
-   U_AXIS_FIFO_OUT : entity work.SsiInsertSof
+   U_SSI_SOF_INSERT : entity work.SsiInsertSof
       generic map (
          -- General Configurations
          TPD_G               => TPD_G,
