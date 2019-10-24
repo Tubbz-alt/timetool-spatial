@@ -373,7 +373,7 @@ begin
    ----------------
    -- DMA->APP FIFO
    ----------------
-   U_AXIS_FIFO_IN : entity work.AxiStreamFifoV2
+   U_AXIS_FIFO_OUT : entity work.AxiStreamFifoV2
       generic map (
          -- General Configurations
          TPD_G               => TPD_G,
