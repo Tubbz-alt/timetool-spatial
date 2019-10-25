@@ -29,9 +29,11 @@ use unisim.vcomponents.all;
 
 entity SpatialApp is
    generic (
-      TPD_G          : time    := 1 ns;
-      ROGUE_SIM_EN_G : boolean := false;
-      BUILD_INFO_G   : BuildInfoType);
+      TPD_G                : time                        := 1 ns;
+      ROGUE_SIM_EN_G       : boolean                     := false;
+      NUM_MIG_CORE_G       : positive                    := 1;
+      ROGUE_SIM_PORT_NUM_G : natural range 1024 to 49151 := 8000;
+      BUILD_INFO_G         : BuildInfoType);
    port (
       ---------------------
       --  Application Ports
@@ -51,10 +53,10 @@ entity SpatialApp is
       qsfp1TxP     : out   slv(3 downto 0);
       qsfp1TxN     : out   slv(3 downto 0);
       -- DDR Ports
-      ddrClkP      : in    slv(0 downto 0);
-      ddrClkN      : in    slv(0 downto 0);
-      ddrOut       : out   DdrOutArray(0 downto 0);
-      ddrInOut     : inout DdrInOutArray(0 downto 0);
+      ddrClkP      : in    slv(NUM_MIG_CORE_G-1 downto 0);
+      ddrClkN      : in    slv(NUM_MIG_CORE_G-1 downto 0);
+      ddrOut       : out   DdrOutArray(NUM_MIG_CORE_G-1 downto 0);
+      ddrInOut     : inout DdrInOutArray(NUM_MIG_CORE_G-1 downto 0);
       --------------
       --  Core Ports
       --------------
@@ -86,62 +88,82 @@ entity SpatialApp is
       pciRxN       : in    slv(7 downto 0);
       pciTxP       : out   slv(7 downto 0);
       pciTxN       : out   slv(7 downto 0));
-attribute dont_touch : string;
-attribute dont_touch of SpatialApp : entity is "true";
-
 end SpatialApp;
 
 architecture top_level of SpatialApp is
 
-   constant ROGUE_SIM_PORT_NUM_C : natural range 1024 to 49151 := 8000;
-
-   constant DMA_SIZE_C        : positive            := 1;
-   constant DMA_WIDTH_C       : positive            := 8;  -- Units of bytes
-   constant DMA_AXIS_CONFIG_C : AxiStreamConfigType := ssiAxiStreamConfig(DMA_WIDTH_C, TKEEP_COMP_C, TUSER_FIRST_LAST_C, 8, 2);
+   constant DMA_SIZE_C : positive := 1;
+   constant DMA_AXIS_CONFIG_C : AxiStreamConfigType := (
+      TSTRB_EN_C    => false,
+      TDATA_BYTES_C => (64/8),          -- 64-bit TDATA bus
+      TDEST_BITS_C  => 8,
+      TID_BITS_C    => 8,
+      TKEEP_MODE_C  => TKEEP_COMP_C,
+      TUSER_BITS_C  => 8,
+      TUSER_MODE_C  => TUSER_FIRST_LAST_C);
 
    constant CLK_FREQUENCY_C : real := 156.25E+6;  -- units of Hz
 
-   constant NUM_AXIL_MASTERS_C : natural := 1;
+   constant NUM_AXIL_MASTERS_C : natural := 5;
 
    constant AXIL_XBAR_CONFIG_C : AxiLiteCrossbarMasterConfigArray(NUM_AXIL_MASTERS_C-1 downto 0) := (
       0               => (
          baseAddr     => x"0010_0000",
          addrBits     => 20,
+         connectivity => x"FFFF"),
+      1               => (
+         baseAddr     => x"0020_0000",
+         addrBits     => 20,
+         connectivity => x"FFFF"),
+      2               => (
+         baseAddr     => x"0030_0000",
+         addrBits     => 20,
+         connectivity => x"FFFF"),
+      3               => (
+         baseAddr     => x"0040_0000",
+         addrBits     => 20,
+         connectivity => x"FFFF"),
+      4               => (
+         baseAddr     => x"0080_0000",
+         addrBits     => 23,
          connectivity => x"FFFF"));
 
-   signal userClk156       : sl;
-   signal axilClk          : sl;
-   signal axilRst          : sl;
-   signal axilReadMaster   : AxiLiteReadMasterType;
-   signal axilReadSlave    : AxiLiteReadSlaveType;
-   signal axilWriteMaster  : AxiLiteWriteMasterType;
-   signal axilWriteSlave   : AxiLiteWriteSlaveType;
+   signal userClk156 : sl := '0';
+   signal axilClk    : sl := '0';
+   signal axilRst    : sl := '1';
+
+   signal axilWriteMaster : AxiLiteWriteMasterType;
+   signal axilWriteSlave  : AxiLiteWriteSlaveType := AXI_LITE_WRITE_SLAVE_EMPTY_OK_C;
+   signal axilReadMaster  : AxiLiteReadMasterType;
+   signal axilReadSlave   : AxiLiteReadSlaveType  := AXI_LITE_READ_SLAVE_EMPTY_OK_C;
+
    signal axilWriteMasters : AxiLiteWriteMasterArray(NUM_AXIL_MASTERS_C-1 downto 0);
    signal axilWriteSlaves  : AxiLiteWriteSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0) := (others => AXI_LITE_WRITE_SLAVE_EMPTY_OK_C);
    signal axilReadMasters  : AxiLiteReadMasterArray(NUM_AXIL_MASTERS_C-1 downto 0);
    signal axilReadSlaves   : AxiLiteReadSlaveArray(NUM_AXIL_MASTERS_C-1 downto 0)  := (others => AXI_LITE_READ_SLAVE_EMPTY_OK_C);
 
-   signal dmaClk       : sl;
-   signal dmaRst       : sl;
-   signal dmaObMasters : AxiStreamMasterArray(DMA_SIZE_C-1 downto 0);
-   signal dmaObSlaves  : AxiStreamSlaveArray(DMA_SIZE_C-1 downto 0);
-   signal dmaIbMasters : AxiStreamMasterArray(DMA_SIZE_C-1 downto 0);
-   signal dmaIbSlaves  : AxiStreamSlaveArray(DMA_SIZE_C-1 downto 0);
+   signal dmaClk       : sl                                          := '0';
+   signal dmaRst       : sl                                          := '1';
+   signal dmaObMasters : AxiStreamMasterArray(DMA_SIZE_C-1 downto 0) := (others => AXI_STREAM_MASTER_INIT_C);
+   signal dmaObSlaves  : AxiStreamSlaveArray(DMA_SIZE_C-1 downto 0)  := (others => AXI_STREAM_SLAVE_FORCE_C);
+   signal dmaIbMasters : AxiStreamMasterArray(DMA_SIZE_C-1 downto 0) := (others => AXI_STREAM_MASTER_INIT_C);
+   signal dmaIbSlaves  : AxiStreamSlaveArray(DMA_SIZE_C-1 downto 0)  := (others => AXI_STREAM_SLAVE_FORCE_C);
 
-   signal ddrClk          : slv(0 downto 0);
-   signal ddrRst          : slv(0 downto 0);
-   signal ddrReady        : slv(0 downto 0);
-   signal ddrWriteMasters : AxiWriteMasterArray(0 downto 0);
-   signal ddrWriteSlaves  : AxiWriteSlaveArray(0 downto 0);
-   signal ddrReadMasters  : AxiReadMasterArray(0 downto 0);
-   signal ddrReadSlaves   : AxiReadSlaveArray(0 downto 0);
+   signal ddrClk          : slv(NUM_MIG_CORE_G-1 downto 0)                 := (others => '0');
+   signal ddrRst          : slv(NUM_MIG_CORE_G-1 downto 0)                 := (others => '1');
+   signal ddrReady        : slv(NUM_MIG_CORE_G-1 downto 0)                 := (others => '0');
+   signal ddrWriteMasters : AxiWriteMasterArray(NUM_MIG_CORE_G-1 downto 0) := (others => AXI_WRITE_MASTER_FORCE_C);
+   signal ddrWriteSlaves  : AxiWriteSlaveArray(NUM_MIG_CORE_G-1 downto 0)  := (others => AXI_WRITE_SLAVE_FORCE_C);
+   signal ddrReadMasters  : AxiReadMasterArray(NUM_MIG_CORE_G-1 downto 0)  := (others => AXI_READ_MASTER_FORCE_C);
+   signal ddrReadSlaves   : AxiReadSlaveArray(NUM_MIG_CORE_G-1 downto 0)   := (others => AXI_READ_SLAVE_FORCE_C);
 
-   signal pipIbMaster : AxiWriteMasterType;
-   signal pipIbSlave  : AxiWriteSlaveType;
-   signal pipObMaster : AxiWriteMasterType;
-   signal pipObSlave  : AxiWriteSlaveType;
+   signal pipIbMaster : AxiWriteMasterType := AXI_WRITE_MASTER_INIT_C;
+   signal pipIbSlave  : AxiWriteSlaveType  := AXI_WRITE_SLAVE_FORCE_C;
+   signal pipObMaster : AxiWriteMasterType := AXI_WRITE_MASTER_INIT_C;
+   signal pipObSlave  : AxiWriteSlaveType  := AXI_WRITE_SLAVE_FORCE_C;
 
 begin
+
    -----------------------
    -- AXI-Lite Clock/Reset
    -----------------------
@@ -173,7 +195,7 @@ begin
       generic map (
          TPD_G                => TPD_G,
          ROGUE_SIM_EN_G       => ROGUE_SIM_EN_G,
-         ROGUE_SIM_PORT_NUM_G => ROGUE_SIM_PORT_NUM_C,
+         ROGUE_SIM_PORT_NUM_G => ROGUE_SIM_PORT_NUM_G,
          BUILD_INFO_G         => BUILD_INFO_G,
          DMA_AXIS_CONFIG_G    => DMA_AXIS_CONFIG_C,
          DMA_SIZE_G           => DMA_SIZE_C)
@@ -261,27 +283,28 @@ begin
          qsfp1TxP     => qsfp1TxP,
          qsfp1TxN     => qsfp1TxN);
 
---   --------------------
---   -- MIG[3:0] IP Cores
---   --------------------
---   U_Mig : entity work.MigAll
---      generic map (
---         TPD_G => TPD_G)
---      port map (
---         extRst          => dmaRst,
---         -- AXI MEM Interface
---         axiClk(0)          => ddrClk(0),
---         axiRst(0)          => ddrRst(0),
---         axiReady(0)        => ddrReady(0),
---         axiWriteMasters(0) => ddrWriteMasters(0),
---         axiWriteSlaves(0)  => ddrWriteSlaves(0),
---         axiReadMasters(0)  => ddrReadMasters(0),
---         axiReadSlaves(0)   => ddrReadSlaves(0),
---         -- DDR Ports
---         ddrClkP(0)         => ddrClkP(0),
---         ddrClkN(0)         => ddrClkN(0),
---         ddrOut(0)          => ddrOut(0),
---         ddrInOut(0)        => ddrInOut(0));
+   -------------------------------------
+   -- MIG[NUM_MIG_CORE_G-1-1:0] IP Cores
+   -------------------------------------
+   U_Mig : entity work.MigAll
+      generic map (
+         TPD_G      => TPD_G,
+         NUM_LANE_G => NUM_MIG_CORE_G)
+      port map (
+         extRst          => dmaRst,
+         -- AXI MEM Interface
+         axiClk          => ddrClk,
+         axiRst          => ddrRst,
+         axiReady        => ddrReady,
+         axiWriteMasters => ddrWriteMasters,
+         axiWriteSlaves  => ddrWriteSlaves,
+         axiReadMasters  => ddrReadMasters,
+         axiReadSlaves   => ddrReadSlaves,
+         -- DDR Ports
+         ddrClkP         => ddrClkP,
+         ddrClkN         => ddrClkN,
+         ddrOut          => ddrOut,
+         ddrInOut        => ddrInOut);
 
    --------------------
    -- AXI-Lite Crossbar
@@ -309,31 +332,32 @@ begin
    ---------------------------
    U_SpatialIPWrapper : entity work.SpatialIPWrapper
       generic map (
-         TPD_G            => TPD_G,
-         SIMULATION_G     => ROGUE_SIM_EN_G,
-         AXIL_BASE_ADDR_G => AXIL_XBAR_CONFIG_C(0).baseAddr)
+         TPD_G             => TPD_G,
+         SIMULATION_G      => ROGUE_SIM_EN_G,
+         DMA_AXIS_CONFIG_G => DMA_AXIS_CONFIG_C,
+         AXIL_BASE_ADDR_G  => AXIL_XBAR_CONFIG_C(0).baseAddr)
       port map (
-         -- AXI-Lite Interface
+         -- BAR0 AXI-Lite Interface (axilClk domain)
          axilClk         => axilClk,
          axilRst         => axilRst,
          axilReadMaster  => axilReadMasters(0),
          axilReadSlave   => axilReadSlaves(0),
          axilWriteMaster => axilWriteMasters(0),
          axilWriteSlave  => axilWriteSlaves(0),
-         -- DDR Memory Interface
-         ddrClk(0)          => dmaClk, 
-         ddrRst(0)          => dmaRst,
-         ddrReady(0)        => ddrReady(0),
-         ddrWriteMasters(0) => ddrWriteMasters(0),
-         ddrWriteSlaves(0)  => ddrWriteSlaves(0),
-         ddrReadMasters(0)  => ddrReadMasters(0),
-         ddrReadSlaves(0)   => ddrReadSlaves(0),
-	 -- Stream interface
- 	 axiStreamInMaster  => dmaObMasters(0),
-	 axiStreamInSlave   => dmaObSlaves(0),
-	 axiStreamOutMaster => dmaIbMasters(0),
-	 axiStreamOutSlave  => dmaIbSlaves(0)
-);
+         -- DMA AXI Stream Interface (dmaClk domain)
+         dmaClk          => dmaClk,
+         dmaRst          => dmaRst,
+         dmaObMaster     => dmaObMasters(0),
+         dmaObSlave      => dmaObSlaves(0),
+         dmaIbMaster     => dmaIbMasters(0),
+         dmaIbSlave      => dmaIbSlaves(0),
+         -- DDR AXI Memory Interface (ddrClk domain)
+         ddrClk          => ddrClk(0),
+         ddrRst          => ddrRst(0),
+         ddrReady        => ddrReady(0),
+         ddrWriteMaster  => ddrWriteMasters(0),
+         ddrWriteSlave   => ddrWriteSlaves(0),
+         ddrReadMaster   => ddrReadMasters(0),
+         ddrReadSlave    => ddrReadSlaves(0));
 
 end top_level;
-
