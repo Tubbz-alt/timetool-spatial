@@ -58,6 +58,16 @@ end SpatialIPWrapper;
 
 architecture mapping of SpatialIPWrapper is
 
+   constant APP_AXIS_CONFIG_C : AxiStreamConfigType := (
+      TSTRB_EN_C    => false,
+      TDATA_BYTES_C => (64/8),         -- 64-bit TDATA bus
+      TDEST_BITS_C  => 8,
+      TID_BITS_C    => 8,
+      TKEEP_MODE_C  => TKEEP_COMP_C,
+      TUSER_BITS_C  => 8,
+      TUSER_MODE_C  => TUSER_FIRST_LAST_C);
+
+
    -- Declare SpatialIP interface to be backed by Verilog --
    component SpatialIP
       port (
@@ -128,33 +138,24 @@ architecture mapping of SpatialIPWrapper is
          -- AXI Stream --
          io_AXIS_IN_TVALID  : in  std_logic;
          io_AXIS_IN_TREADY  : out std_logic;
-         io_AXIS_IN_TDATA   : in  std_logic_vector(511 downto 0);
-         io_AXIS_IN_TSTRB   : in  std_logic_vector(63 downto 0);
-         io_AXIS_IN_TKEEP   : in  std_logic_vector(63 downto 0);
+         io_AXIS_IN_TDATA   : in  std_logic_vector(8*APP_AXIS_CONFIG_C.TDATA_BYTES_C-1 downto 0);
+         io_AXIS_IN_TSTRB   : in  std_logic_vector(APP_AXIS_CONFIG_C.TDATA_BYTES_C-1 downto 0);
+         io_AXIS_IN_TKEEP   : in  std_logic_vector(APP_AXIS_CONFIG_C.TDATA_BYTES_C-1 downto 0);
          io_AXIS_IN_TLAST   : in  std_logic;
-         io_AXIS_IN_TID     : in  std_logic_vector(7 downto 0);
-         io_AXIS_IN_TDEST   : in  std_logic_vector(7 downto 0);
-         io_AXIS_IN_TUSER   : in  std_logic_vector(511 downto 0);
+         io_AXIS_IN_TID     : in  std_logic_vector(APP_AXIS_CONFIG_C.TID_BITS_C-1 downto 0);
+         io_AXIS_IN_TDEST   : in  std_logic_vector(APP_AXIS_CONFIG_C.TDEST_BITS_C-1 downto 0);
+         io_AXIS_IN_TUSER   : in  std_logic_vector(8*APP_AXIS_CONFIG_C.TDATA_BYTES_C-1 downto 0);
          io_AXIS_OUT_TVALID : out std_logic;
          io_AXIS_OUT_TREADY : in  std_logic;
-         io_AXIS_OUT_TDATA  : out std_logic_vector(511 downto 0);
-         io_AXIS_OUT_TSTRB  : out std_logic_vector(63 downto 0);
-         io_AXIS_OUT_TKEEP  : out std_logic_vector(63 downto 0);
+         io_AXIS_OUT_TDATA  : out std_logic_vector(8*APP_AXIS_CONFIG_C.TDATA_BYTES_C-1 downto 0);
+         io_AXIS_OUT_TSTRB  : out std_logic_vector(APP_AXIS_CONFIG_C.TDATA_BYTES_C-1 downto 0);
+         io_AXIS_OUT_TKEEP  : out std_logic_vector(APP_AXIS_CONFIG_C.TDATA_BYTES_C-1 downto 0);
          io_AXIS_OUT_TLAST  : out std_logic;
-         io_AXIS_OUT_TID    : out std_logic_vector(7 downto 0);
-         io_AXIS_OUT_TUSER  : out std_logic_vector(511 downto 0);
-         io_AXIS_OUT_TDEST  : out std_logic_vector(7 downto 0)
+         io_AXIS_OUT_TID    : out std_logic_vector(APP_AXIS_CONFIG_C.TID_BITS_C-1 downto 0);
+         io_AXIS_OUT_TUSER  : out std_logic_vector(8*APP_AXIS_CONFIG_C.TDATA_BYTES_C-1 downto 0);
+         io_AXIS_OUT_TDEST  : out std_logic_vector(APP_AXIS_CONFIG_C.TDEST_BITS_C-1 downto 0)
          );
    end component;
-
-   constant APP_AXIS_CONFIG_C : AxiStreamConfigType := (
-      TSTRB_EN_C    => false,
-      TDATA_BYTES_C => (512/8),         -- 512-bit TDATA bus
-      TDEST_BITS_C  => 8,
-      TID_BITS_C    => 8,
-      TKEEP_MODE_C  => TKEEP_COMP_C,
-      TUSER_BITS_C  => 8,
-      TUSER_MODE_C  => TUSER_FIRST_LAST_C);
 
    constant NUM_AXIL_MASTERS_C : natural := 1;
 
