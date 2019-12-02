@@ -16,13 +16,16 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-use work.StdRtlPkg.all;
-use work.AxiPkg.all;
-use work.AxiLitePkg.all;
-use work.AxiStreamPkg.all;
-use work.SsiPkg.all;
-use work.AxiPciePkg.all;
-use work.MigPkg.all;
+library surf;
+use surf.StdRtlPkg.all;
+use surf.AxiPkg.all;
+use surf.AxiLitePkg.all;
+use surf.AxiStreamPkg.all;
+use surf.SsiPkg.all;
+
+library axi_pcie_core;
+use axi_pcie_core.AxiPciePkg.all;
+use axi_pcie_core.MigPkg.all;
 
 library unisim;
 use unisim.vcomponents.all;
@@ -96,7 +99,7 @@ architecture top_level of TimetoolSpatialMemTester is
    constant DMA_WIDTH_C       : positive            := 8;  -- Units of bytes
    constant DMA_AXIS_CONFIG_C : AxiStreamConfigType := ssiAxiStreamConfig(DMA_WIDTH_C, TKEEP_COMP_C, TUSER_FIRST_LAST_C, 8, 2);
 
-   constant CLK_FREQUENCY_C : real := 156.25E+6;  -- units of Hz
+   constant CLK_FREQUENCY_C : real := 100.0E+6;  -- units of Hz
 
    constant NUM_AXIL_MASTERS_C : natural := 4;
 
@@ -155,7 +158,7 @@ begin
    -----------------------
    -- AXI-Lite Clock/Reset
    -----------------------
-   U_axilClk : entity work.ClockManagerUltraScale
+   U_axilClk : entity surf.ClockManagerUltraScale
       generic map(
          TPD_G              => TPD_G,
          TYPE_G             => "MMCM",
@@ -166,7 +169,7 @@ begin
          -- MMCM attributes
          CLKIN_PERIOD_G     => 6.4,     -- 156.25 MHz
          CLKFBOUT_MULT_G    => 8,       -- 1.25GHz = 8 x 156.25 MHz
-         CLKOUT0_DIVIDE_F_G => 8.0)  -- 156.25 MHz (must match CLK_FREQUENCY_C)
+         CLKOUT0_DIVIDE_F_G => 12.5)    -- 100 MHz (must match CLK_FREQUENCY_C)
       port map(
          -- Clock Input
          clkIn     => userClk156,
@@ -179,7 +182,7 @@ begin
    -----------------------         
    -- axi-pcie-core module
    -----------------------         
-   U_Core : entity work.XilinxKcu1500Core
+   U_Core : entity axi_pcie_core.XilinxKcu1500Core
       generic map (
          TPD_G                => TPD_G,
          ROGUE_SIM_EN_G       => ROGUE_SIM_EN_G,
@@ -246,7 +249,7 @@ begin
    -------------------------
    -- Unused QSFP interfaces
    -------------------------
-   U_UnusedQsfp : entity work.TerminateQsfp
+   U_UnusedQsfp : entity axi_pcie_core.TerminateQsfp
       generic map (
          TPD_G => TPD_G)
       port map (
@@ -273,7 +276,7 @@ begin
    --------------------
    -- MIG[3:0] IP Cores
    --------------------
-   U_Mig : entity work.MigAll
+   U_Mig : entity axi_pcie_core.MigAll
       generic map (
          TPD_G => TPD_G)
       port map (
@@ -295,7 +298,7 @@ begin
    --------------------
    -- AXI-Lite Crossbar
    --------------------
-   U_XBAR : entity work.AxiLiteCrossbar
+   U_XBAR : entity surf.AxiLiteCrossbar
       generic map (
          TPD_G              => TPD_G,
          NUM_SLAVE_SLOTS_G  => 1,
@@ -341,7 +344,7 @@ begin
    -------------
    -- PIP Module
    -------------
-   U_AxiPciePipCore : entity work.AxiPciePipCore
+   U_AxiPciePipCore : entity axi_pcie_core.AxiPciePipCore
       generic map (
          TPD_G             => TPD_G,
          NUM_AXIS_G        => DMA_SIZE_C,

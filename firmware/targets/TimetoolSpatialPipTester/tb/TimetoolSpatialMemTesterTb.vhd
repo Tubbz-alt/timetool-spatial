@@ -18,8 +18,11 @@ use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
 use ieee.std_logic_arith.all;
 
-use work.StdRtlPkg.all;
-use work.BuildInfoPkg.all;
+library surf;
+use surf.StdRtlPkg.all;
+
+library ruckus;
+use ruckus.BuildInfoPkg.all;
 
 entity TimetoolSpatialPipTesterTb is end TimetoolSpatialPipTesterTb;
 
@@ -32,7 +35,7 @@ architecture testbed of TimetoolSpatialPipTesterTb is
 
 begin
 
-   U_UserClk : entity work.ClkRst
+   U_UserClk : entity surf.ClkRst
       generic map (
          CLK_PERIOD_G      => 6.4 ns,   -- 156.25 MHz
          RST_START_DELAY_G => 0 ns,

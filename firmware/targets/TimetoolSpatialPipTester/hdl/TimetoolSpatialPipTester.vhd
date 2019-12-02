@@ -16,12 +16,15 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-use work.StdRtlPkg.all;
-use work.AxiPkg.all;
-use work.AxiLitePkg.all;
-use work.AxiStreamPkg.all;
-use work.SsiPkg.all;
-use work.AxiPciePkg.all;
+library surf;
+use surf.StdRtlPkg.all;
+use surf.AxiPkg.all;
+use surf.AxiLitePkg.all;
+use surf.AxiStreamPkg.all;
+use surf.SsiPkg.all;
+
+library axi_pcie_core;
+use axi_pcie_core.AxiPciePkg.all;
 
 library unisim;
 use unisim.vcomponents.all;
@@ -141,7 +144,7 @@ begin
    -----------------------
    -- AXI-Lite Clock/Reset
    -----------------------
-   U_axilClk : entity work.ClockManagerUltraScale
+   U_axilClk : entity surf.ClockManagerUltraScale
       generic map(
          TPD_G              => TPD_G,
          TYPE_G             => "MMCM",
@@ -165,7 +168,7 @@ begin
    -----------------------         
    -- axi-pcie-core module
    -----------------------         
-   U_Core : entity work.XilinxKcu1500Core
+   U_Core : entity axi_pcie_core.XilinxKcu1500Core
       generic map (
          TPD_G                => TPD_G,
          ROGUE_SIM_EN_G       => ROGUE_SIM_EN_G,
@@ -232,7 +235,7 @@ begin
    -------------------------
    -- Unused QSFP interfaces
    -------------------------
-   U_UnusedQsfp : entity work.TerminateQsfp
+   U_UnusedQsfp : entity axi_pcie_core.TerminateQsfp
       generic map (
          TPD_G => TPD_G)
       port map (
@@ -259,7 +262,7 @@ begin
    --------------------
    -- AXI-Lite Crossbar
    --------------------
-   U_XBAR : entity work.AxiLiteCrossbar
+   U_XBAR : entity surf.AxiLiteCrossbar
       generic map (
          TPD_G              => TPD_G,
          NUM_SLAVE_SLOTS_G  => 1,
@@ -280,7 +283,7 @@ begin
    -------------
    -- PIP Module
    -------------
-   U_AxiPciePipCore : entity work.AxiPciePipCore
+   U_AxiPciePipCore : entity axi_pcie_core.AxiPciePipCore
       generic map (
          TPD_G             => TPD_G,
          NUM_AXIS_G        => DMA_SIZE_C,
@@ -308,7 +311,7 @@ begin
          mAxiWriteMaster => pipObMaster,
          mAxiWriteSlave  => pipObSlave);   
          
-   U_Version0 : entity work.AxiVersion
+   U_Version0 : entity surf.AxiVersion
       generic map (
          TPD_G           => TPD_G,
          BUILD_INFO_G    => BUILD_INFO_G,

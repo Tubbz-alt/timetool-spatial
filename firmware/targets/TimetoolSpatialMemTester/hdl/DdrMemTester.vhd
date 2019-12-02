@@ -16,10 +16,13 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-use work.StdRtlPkg.all;
-use work.AxiPkg.all;
-use work.AxiLitePkg.all;
-use work.MigPkg.all;
+library surf;
+use surf.StdRtlPkg.all;
+use surf.AxiPkg.all;
+use surf.AxiLitePkg.all;
+
+library axi_pcie_core;
+use axi_pcie_core.MigPkg.all;
 
 entity DdrMemTester is
    generic (
@@ -76,7 +79,7 @@ begin
    --------------------
    -- AXI-Lite Crossbar
    --------------------
-   U_XBAR : entity work.AxiLiteCrossbar
+   U_XBAR : entity surf.AxiLiteCrossbar
       generic map (
          TPD_G              => TPD_G,
          NUM_SLAVE_SLOTS_G  => 1,
@@ -98,8 +101,8 @@ begin
    -- Memory Tester Modules
    ------------------------
    GEN_VEC : for i in NUM_AXIL_MASTERS_C-1 downto 0 generate
-   
-      U_AxiMemTester : entity work.AxiMemTester
+--      U_AxiMemTester : entity work.AxiMemTester
+      U_AxiMemTester : entity surf.AxiMemTester
          generic map (
             TPD_G        => TPD_G,
             START_ADDR_G => START_ADDR_C,
@@ -128,7 +131,8 @@ begin
       -----------------------------------
       -- APP<->DDR Clock Domain Converter
       -----------------------------------
-      U_MigClkConvt : entity work.MigClkConvtWrapper
+--      U_MigClkConvt : entity work.MigClkConvtWrapper
+      U_MigClkConvtWrapper : entity axi_pcie_core.MigClkConvtWrapper
          generic map (
             TPD_G => TPD_G)
          port map (
