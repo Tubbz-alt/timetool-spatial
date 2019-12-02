@@ -15,11 +15,12 @@ import pyrogue.interfaces.simulation
 
 import axipcie  as pcie
 import surf.axi as axi
+
+sys.path.insert(1, './codegen')
+
 from _AccelUnit import AccelUnit
 from TopHost import execute
-
-from FrameMaster import FrameMaster
-from FrameSlave import FrameSlave
+from ConnectStreams import connect
 
 #################################################################
 
@@ -148,18 +149,9 @@ class MyRoot(pr.Root):
 	    	
         if ( args.dev[0] == 'sim' ):  
             # Setup frame in/out objects 
-            self.frameIn = FrameMaster() #pr.utilities.prbs.PrbsTx(name=('SwPrbsTx'),expand=True)
-            self.sendFramePort = rogue.interfaces.stream.TcpClient('localhost',8002)
-            pyrogue.streamConnect(self.frameIn, self.sendFramePort)
-            self.frameOut = FrameSlave()
-            self.receiveFramePort = rogue.interfaces.stream.TcpClient('localhost',8004)
-            pyrogue.streamConnect(self.receiveFramePort, self.frameOut)
+            connect(self)
 
-        # Start the system
         self.start()
-
-#################################################################
-
 # Set base
 base = MyRoot(name='pciSystem',description='Generic Spatial Application Wrapper')
 
