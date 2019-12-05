@@ -16,13 +16,16 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-use work.StdRtlPkg.all;
-use work.AxiPkg.all;
-use work.AxiLitePkg.all;
-use work.AxiStreamPkg.all;
-use work.SsiPkg.all;
-use work.AxiPciePkg.all;
-use work.MigPkg.all;
+library surf;
+use surf.StdRtlPkg.all;
+use surf.AxiPkg.all;
+use surf.AxiLitePkg.all;
+use surf.AxiStreamPkg.all;
+use surf.SsiPkg.all;
+
+library axi_pcie_core;
+use axi_pcie_core.AxiPciePkg.all;
+use axi_pcie_core.MigPkg.all;
 
 library unisim;
 use unisim.vcomponents.all;
@@ -167,7 +170,7 @@ begin
    -----------------------
    -- AXI-Lite Clock/Reset
    -----------------------
-   U_axilClk : entity work.ClockManagerUltraScale
+   U_axilClk : entity surf.ClockManagerUltraScale
       generic map(
          TPD_G              => TPD_G,
          TYPE_G             => "MMCM",
@@ -191,7 +194,7 @@ begin
    -----------------------         
    -- axi-pcie-core module
    -----------------------         
-   U_Core : entity work.XilinxKcu1500Core
+   U_Core : entity axi_pcie_core.XilinxKcu1500Core
       generic map (
          TPD_G                => TPD_G,
          ROGUE_SIM_EN_G       => ROGUE_SIM_EN_G,
@@ -259,7 +262,7 @@ begin
    -------------------------
    -- Unused QSFP interfaces
    -------------------------
-   U_UnusedQsfp : entity work.TerminateQsfp
+   U_UnusedQsfp : entity axi_pcie_core.TerminateQsfp
       generic map (
          TPD_G => TPD_G)
       port map (
@@ -286,7 +289,7 @@ begin
    -------------------------------------
    -- MIG[NUM_MIG_CORE_G-1-1:0] IP Cores
    -------------------------------------
-   U_Mig : entity work.MigAll
+   U_Mig : entity axi_pcie_core.MigAll
       generic map (
          TPD_G      => TPD_G,
          NUM_LANE_G => NUM_MIG_CORE_G)
@@ -309,7 +312,7 @@ begin
    --------------------
    -- AXI-Lite Crossbar
    --------------------
-   U_XBAR : entity work.AxiLiteCrossbar
+   U_XBAR : entity surf.AxiLiteCrossbar
       generic map (
          TPD_G              => TPD_G,
          NUM_SLAVE_SLOTS_G  => 1,

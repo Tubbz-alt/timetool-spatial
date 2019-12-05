@@ -179,7 +179,8 @@ def execute(base, cliargs):
     x151 = str(x150)
     x152 = (x151 + str(" "));
     print(x152)
-  
+  print("here")
+ 
   print(str("\n"))
   x159 = np.zeros(len(x133), dtype=bool)
   for b48 in range(len(x133)):
@@ -187,24 +188,28 @@ def execute(base, cliargs):
     x157 = x137[b48]
     x158 = x156 == x157;
     x159[b48] = x158
+  print("here")
   
   x161 = np.zeros(len(x159),dtype='bool')
   for b53 in range(0,len(x159)):
     x160 = x159[b53]
     x161[b53] = x160
+  print("here")
   
   x164 = 0
   if (len(x161) > 0): # Hack to handle reductions on things of length 0
     x164 = x161[0]
   else:
     x164 = 0
+  print("here")
   
   for b56 in range(1,len(x161)):
     b57 = x161[b56]
     b58 = x164;
     x163 = b57 & b58;
     x164 = x163;
+  print("here")
   
   x165 = ("\n=================\n" + (str("LoadStoreUnitTests.scala:72:11: Assertion failure") + "\n=================\n"));
   if (True): assert(x164), "%s" % x165
-
+  print("Done executing Spatial app! :D")

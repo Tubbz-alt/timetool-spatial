@@ -1,0 +1,68 @@
+diff --git a/axi/simlink/sim/RogueTcpStreamWrap.vhd b/axi/simlink/sim/RogueTcpStreamWrap.vhd
+index 12c474683..76f23cd1e 100644
+--- a/axi/simlink/sim/RogueTcpStreamWrap.vhd
++++ b/axi/simlink/sim/RogueTcpStreamWrap.vhd
+@@ -27,7 +27,7 @@ entity RogueTcpStreamWrap is
+       TPD_G         : time                        := 1 ns;
+       PORT_NUM_G    : natural range 1024 to 49151 := 9000;
+       SSI_EN_G      : boolean                     := true;
+-      CHAN_COUNT_G  : positive range 1 to 256     := 1;
++      CHAN_COUNT_G  : positive range 1 to 8     := 1;
+       AXIS_CONFIG_G : AxiStreamConfigType         := AXI_STREAM_CONFIG_INIT_C);
+    port (
+       -- Clock and Reset
+diff --git a/axi/simlink/src/Makefile b/axi/simlink/src/Makefile
+index 12c785009..0812d02eb 100755
+--- a/axi/simlink/src/Makefile
++++ b/axi/simlink/src/Makefile
+@@ -16,8 +16,8 @@ CC     := gcc
+ DEF    := 
+ OUT    := $(SIMLINK_PWD)
+ OBJ    := $(SIMLINK_PWD)/.obj
+-CFLAGS := -Wall -fPIC -I$(VCS_HOME)/include -DVCS_VERSION=$(VCS_VERSION) `pkg-config --cflags libzmq`
+-LFLAGS := -lrt -pthread `pkg-config --libs libzmq`
++CFLAGS := -m32 -g -Wall -fPIC -I$(VCS_HOME)/include -DVCS_VERSION=$(VCS_VERSION) `pkg-config --cflags libzmq`
++LFLAGS := -m32 -g -lrt -pthread `pkg-config --libs libzmq`
+ LIB    := $(OUT)/libAxiSim.so
+ 
+ # Local Sources
+diff --git a/axi/simlink/src/RogueTcpStream.c b/axi/simlink/src/RogueTcpStream.c
+index c67dd1db7..44bd1f8f5 100755
+--- a/axi/simlink/src/RogueTcpStream.c
++++ b/axi/simlink/src/RogueTcpStream.c
+@@ -181,7 +181,6 @@ int RogueTcpStreamRecv ( RogueTcpStreamData *data, portDataT *portData ) {
+ 
+ // Init function
+ void RogueTcpStreamInit(vhpiHandleT compInst) { 
+-
+    // Create new port data structure
+    portDataT             *portData  = (portDataT *)             malloc(sizeof(portDataT));
+    RogueTcpStreamData *data      = (RogueTcpStreamData *) malloc(sizeof(RogueTcpStreamData));
+@@ -244,11 +243,13 @@ void RogueTcpStreamInit(vhpiHandleT compInst) {
+    portData->stateUpdate = *RogueTcpStreamUpdate;
+ 
+    // Init
++   printf("memsetting at %x for %d bytes\n",data, sizeof(RogueTcpStreamData));
+    memset(data,0, sizeof(RogueTcpStreamData));
+    time(&(data->ltime));
+ 
+    // Call generic Init
+    VhpiGenericInit(compInst,portData);
++
+ }
+ 
+ 
+diff --git a/protocols/pgp/pgp2b/core/vcs/Makefile b/protocols/pgp/pgp2b/core/vcs/Makefile
+index 70ef857e1..061ab4b87 100755
+--- a/protocols/pgp/pgp2b/core/vcs/Makefile
++++ b/protocols/pgp/pgp2b/core/vcs/Makefile
+@@ -5,7 +5,8 @@ SIM_DIR=$(PWD)/out
+ 
+ all: syn_setup rtl_src sim_gen
+ 
+-EN64=-full64 -xlrm
++#EN64=-full64 -xlrm
++EN64=-xlrm
+ 
+ # RTL Files
+ rtl_src:

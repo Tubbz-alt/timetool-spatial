@@ -1,0 +1,71 @@
+diff --git a/vivado_proc.tcl b/vivado_proc.tcl
+index 2f3d2fb..5d70341 100644
+--- a/vivado_proc.tcl
++++ b/vivado_proc.tcl
+@@ -805,6 +805,8 @@ proc VcsCompleteMessage {dirPath rogueSim} {
+    puts "The VCS simulation script has been generated."
+    puts "To compile and run the simulation:"
+    puts "\t\$ cd ${dirPath}/"    
++   puts "\t\$ sed -i \"s/-full64//g\" sim_vcs_mx.sh"
++   puts "\t\$ sed -i \"s/-debug_pp/-CFLAGS -g -LDFLAGS -g -debug_pp/g\" sim_vcs_mx.sh"
+    puts "\t\$ ./sim_vcs_mx.sh"
+    if { ${rogueSim} == true } {
+       if { $::env(SHELL) != "/bin/bash" } {
+diff --git a/vivado_project.tcl b/vivado_project.tcl
+index 75eb975..af1f266 100644
+--- a/vivado_project.tcl
++++ b/vivado_project.tcl
+@@ -69,14 +69,14 @@ if { [VersionCompare 2014.2] <= 0 } {
+ } 
+ 
+ # Enable general project multi-threading
+-set cpuNum [GetCpuNumber]
++#set cpuNum [GetCpuNumber]
++set cpuNum 8
+ set_param general.maxThreads ${cpuNum}
+ if { ${cpuNum} >= 8 } { 
+    set_param synth.maxThreads 8
+ } else {
+    set_param synth.maxThreads ${cpuNum}
+ }
+-
+ # # https://www.xilinx.com/support/answers/62908.html
+ # tclapp::reset_tclstore
+ 
+diff --git a/vivado_vcs.tcl b/vivado_vcs.tcl
+index 2a08809..969b163 100644
+--- a/vivado_vcs.tcl
++++ b/vivado_vcs.tcl
+@@ -135,13 +135,14 @@ if { [file exists ${simLibOutDir}] != 1 } {
+    -cfgopt {vcs_mx.verilog.secureip: -sverilog -nc      +define+XIL_TIMING -kdb } \
+    -cfgopt {vcs_mx.verilog.simprim:  -sverilog -nc +v2k +define+XIL_TIMING -kdb }
+ 
++   set_property 32bit 1 [current_fileset -simset]
+    # Compile the simulation libraries
+    if { [info exists ::env(VCS_IP_COMPILE)] != 1 || $::env(VCS_IP_COMPILE) == 0 } {
+       # Compile the simulation libraries without very long IP compile
+-      compile_simlib -directory ${simLibOutDir} -family [getFpgaFamily] -simulator vcs_mx -no_ip_compile
++      compile_simlib -directory ${simLibOutDir} -family [getFpgaFamily] -simulator vcs_mx -no_ip_compile -32bit
+    } else {
+       # Compile the simulation libraries with very long IP compile
+-      compile_simlib -directory ${simLibOutDir} -family [getFpgaFamily] -simulator vcs_mx
++      compile_simlib -directory ${simLibOutDir} -family [getFpgaFamily] -simulator vcs_mx -32bit
+    }
+    
+    # Set VCS as target_simulator
+@@ -274,9 +275,12 @@ set err_ret [catch {get_files -compile_order sources -used_in simulation {*.v}}
+ set err_ret [catch {get_files -compile_order sources -used_in simulation {*.vh}} vhList]
+ set err_ret [catch {get_files -compile_order sources -used_in simulation {*.sv}} svList]
+ 
+-set vlogan_opts_old   "vlogan_opts=\"-full64"
+-set vhdlan_opts_old   "vhdlan_opts=\"-full64"
+-set vcs_elab_opts_old "vcs_elab_opts=\"-full64"
++set vlogan_opts_old   "vlogan_opts=\" "
++set vhdlan_opts_old   "vhdlan_opts=\" "
++set vcs_elab_opts_old "vcs_elab_opts=\" "
++#set vlogan_opts_old   "vlogan_opts=\"-full64"
++#set vhdlan_opts_old   "vhdlan_opts=\"-full64"
++#set vcs_elab_opts_old "vcs_elab_opts=\"-full64"
+ 
+ set vlogan_opts_new   "${vlogan_opts_old} ${vloganOpt}"
+ set vhdlan_opts_new   "${vhdlan_opts_old} ${vhdlanOpt}"

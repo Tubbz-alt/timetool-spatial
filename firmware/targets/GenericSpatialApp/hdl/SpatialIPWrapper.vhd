@@ -16,12 +16,19 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-use work.SsiPkg.all;
-use work.StdRtlPkg.all;
-use work.AxiPkg.all;
-use work.AxiLitePkg.all;
-use work.MigPkg.all;
-use work.AxiStreamPkg.all;
+library surf;
+use surf.StdRtlPkg.all;
+use surf.AxiPkg.all;
+use surf.AxiLitePkg.all;
+use surf.AxiStreamPkg.all;
+use surf.SsiPkg.all;
+
+library axi_pcie_core;
+use axi_pcie_core.AxiPciePkg.all;
+use axi_pcie_core.MigPkg.all;
+
+library unisim;
+use unisim.vcomponents.all;
 
 entity SpatialIPWrapper is
    generic (
@@ -185,7 +192,7 @@ begin
    --------------------
    -- AXI-Lite Crossbar
    --------------------
-   U_XBAR : entity work.AxiLiteCrossbar
+   U_XBAR : entity surf.AxiLiteCrossbar
       generic map (
          TPD_G              => TPD_G,
          NUM_SLAVE_SLOTS_G  => 1,
@@ -206,14 +213,14 @@ begin
    ----------------
    -- DMA->APP FIFO
    ----------------
-   U_AXIS_FIFO_IN : entity work.AxiStreamFifoV2
+   U_AXIS_FIFO_IN : entity surf.AxiStreamFifoV2
       generic map (
          -- General Configurations
          TPD_G               => TPD_G,
          INT_PIPE_STAGES_G   => 1,      -- Help with making timing
          PIPE_STAGES_G       => 1,      -- Help with making timing          
          -- FIFO configurations
-         BRAM_EN_G           => true,   -- Implement with BRAM
+         --BRAM_EN_G           => true,   -- Implement with BRAM
          GEN_SYNC_FIFO_G     => false,  -- false = ASYNC FIFO
          FIFO_ADDR_WIDTH_G   => 9,      -- 2**9 = 512 deep 
          -- AXI Stream Port Configurations
@@ -324,7 +331,7 @@ begin
    -----------------------------------
    -- APP<->DDR Clock Domain Converter
    -----------------------------------
-   U_MigClkConvt : entity work.MigClkConvtWrapper
+   U_MigClkConvt : entity axi_pcie_core.MigClkConvtWrapper
       generic map (
          TPD_G => TPD_G)
       port map (
@@ -346,7 +353,7 @@ begin
    ------------------------------
    -- Insert SOF into tUser field
    ------------------------------
-   U_SSI_SOF_INSERT : entity work.SsiInsertSof
+   U_SSI_SOF_INSERT : entity surf.SsiInsertSof
       generic map (
          -- General Configurations
          TPD_G               => TPD_G,
@@ -374,7 +381,7 @@ begin
    ----------------
    -- DMA->APP FIFO
    ----------------
-   U_AXIS_FIFO_OUT : entity work.AxiStreamFifoV2
+   U_AXIS_FIFO_OUT : entity surf.AxiStreamFifoV2
       generic map (
          -- General Configurations
          TPD_G               => TPD_G,
@@ -382,7 +389,7 @@ begin
          PIPE_STAGES_G       => 1,         -- Help with making timing     
          INT_WIDTH_SELECT_G  => "NARROW",  -- Help with making timing     
          -- FIFO configurations
-         BRAM_EN_G           => true,      -- Implement with BRAM
+         --BRAM_EN_G           => true,      -- Implement with BRAM
          GEN_SYNC_FIFO_G     => false,     -- false = ASYNC FIFO
          FIFO_ADDR_WIDTH_G   => 9,         -- 2**9 = 512 deep 
          -- AXI Stream Port Configurations

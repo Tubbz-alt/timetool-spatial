@@ -18,9 +18,14 @@ use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
 use ieee.std_logic_arith.all;
 
-use work.StdRtlPkg.all;
-use work.BuildInfoPkg.all;
-use work.MigPkg.all;
+library surf;
+use surf.StdRtlPkg.all;
+
+library ruckus;
+use ruckus.BuildInfoPkg.all;
+
+library axi_pcie_core;
+use axi_pcie_core.MigPkg.all;
 
 entity SpatialAppTb is end SpatialAppTb;
 
@@ -63,7 +68,7 @@ architecture testbed of SpatialAppTb is
 
 begin
 
-   U_UserClk : entity work.ClkRst
+   U_UserClk : entity surf.ClkRst
       generic map (
          CLK_PERIOD_G      => 6.4 ns,   -- 156.25 MHz
          RST_START_DELAY_G => 0 ns,
@@ -72,7 +77,7 @@ begin
          clkP => userClkP,
          clkN => userClkN);
 
-   U_ClkDdr : entity work.ClkRst
+   U_ClkDdr : entity surf.ClkRst
       generic map (
          CLK_PERIOD_G      => 3.333 ns,  -- 300 MHz
          RST_START_DELAY_G => 0 ns,
@@ -85,7 +90,7 @@ begin
    ddrClkN <= (others => ddrClockN);
 
    GEN_VEC : for i in 0 downto 0 generate
-      U_Ddr4Model : entity work.Ddr4ModelWrapper
+      U_Ddr4Model : entity axi_pcie_core.Ddr4ModelWrapper
          generic map (
             DDR_WIDTH_G => DDR_WIDTH_C(i))
          port map (
